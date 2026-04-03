@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Плейнексис — Цифровой маркетплейс</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Anonymous+Pro:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/profile-new.css">
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <i class="fas fa-store"></i>
+    <span class="company-name">Плейнексис</span>
+  </div>
+  <div class="header-right">
+    <div class="header-search">
+      <i class="fas fa-search"></i>
+      <input id="globalSearchInput" placeholder="Поиск товаров..." class="global-search-input">
+      <i class="fas fa-times" id="clearSearchBtn" style="display: none; cursor: pointer;"></i>
+    </div>
+    <button class="admin-toggle-btn" onclick="toggleAdminPanel()" id="adminToggleBtn">
+      <i class="fas fa-user-shield"></i>
+    </button>
+  </div>
+  <!-- НАВИГАЦИЯ ДЛЯ ПК (отображается только на экранах ≥768px) -->
+  <div class="nav-links" id="desktopNav">
+    <button class="nav-link active" data-nav="home"><i class="fas fa-home"></i><span>Главная</span></button>
+    <button class="nav-link" data-nav="chat"><i class="fab fa-telegram"></i><span>Чаты</span></button>
+    <button class="nav-link plus-link" onclick="window.openModal()"><i class="fas fa-plus"></i><span>Создать</span></button>
+    <button class="nav-link" data-nav="profile"><i class="fas fa-user-circle"></i><span>Профиль</span></button>
+  </div>
+</div>
+
+<!-- ГЛАВНАЯ -->
+<div class="page active" id="home">
+  <div class="top-links">
+    <a href="#" class="top-link" onclick="showInfo('about')">📖 О нас</a>
+    <a href="#" class="top-link" onclick="showInfo('privacy')">🔒 Политика</a>
+    <a href="#" class="top-link" onclick="showInfo('info')">ℹ️ О проекте</a>
+    <a href="#" class="top-link" onclick="showInfo('discounts')">🏷️ Скидки</a>
+    <a href="#" class="top-link" onclick="showInfo('interesting')">✨ Интересное</a>
+  </div>
+
+  <div class="logo-block1" id="greetingLogo">
+
+    <div class="hero-logo-text" id="typewriterText">Привет! :)</div>
+    <div class="hero-logo-subtitle">Цифровой маркетплейс</div>
+  </div>
+
+  <div class="sliders-container">
+    <button class="slider-scroll-btn" id="scrollLeftBtn"><i class="fas fa-chevron-left"></i></button>
+    <div class="hero-sliders-wrapper" id="heroSlidersWrapper">
+      <div class="hero-sliders" id="heroSliders">
+        <div class="slider-card"><div class="mini-slider" data-slider="0"><div class="mini-slider-wrapper"><div class="mini-slider-images" id="slider0Images"><img class="mini-slide-img" src="https://img.utdstc.com/screen/22e/370/22e3701f09db24384e83b4b16725f90f919aefb0ec60adc922a4ffcfbbdd41ef:400"><img class="mini-slide-img" src="https://ichip.ru/blobimgs/uploads/2019/06/surf.jpg"><img class="mini-slide-img" src="https://dist-fastdev.ngcdn.ru/directus/55e6a76f-7992-4ebf-8eff-b0b64f4e5758.jpeg"><img class="mini-slide-img" src="https://ixbt.online/live/images/original/14/99/88/2020/05/01/09cd823276.jpg"></div></div><div class="mini-slider-dots" id="slider0Dots"></div></div></div>
+        <div class="slider-card"><div class="mini-slider" data-slider="1"><div class="mini-slider-wrapper"><div class="mini-slider-images" id="slider1Images"><img class="mini-slide-img" src="https://ichip.ru/blobimgs/uploads/2019/06/surf.jpg"><img class="mini-slide-img" src="https://ichip.ru/blobimgs/uploads/2019/06/surf.jpg"><img class="mini-slide-img" src="https://picsum.photos/id/0/300/200"><img class="mini-slide-img" src="https://picsum.photos/id/1/300/200"></div></div><div class="mini-slider-dots" id="slider1Dots"></div></div></div>
+        <div class="slider-card"><div class="mini-slider" data-slider="2"><div class="mini-slider-wrapper"><div class="mini-slider-images" id="slider2Images"><img class="mini-slide-img" src="https://dist-fastdev.ngcdn.ru/directus/55e6a76f-7992-4ebf-8eff-b0b64f4e5758.jpeg"><img class="mini-slide-img" src="https://picsum.photos/id/101/300/200"><img class="mini-slide-img" src="https://picsum.photos/id/102/300/200"><img class="mini-slide-img" src="https://picsum.photos/id/103/300/200"></div></div><div class="mini-slider-dots" id="slider2Dots"></div></div></div>
+        <div class="slider-card"><div class="mini-slider" data-slider="3"><div class="mini-slider-wrapper"><div class="mini-slider-images" id="slider3Images"><img class="mini-slide-img" src="https://ixbt.online/live/images/original/14/99/88/2020/05/01/09cd823276.jpg"><img class="mini-slide-img" src="https://picsum.photos/id/108/300/200"><img class="mini-slide-img" src="https://picsum.photos/id/109/300/200"><img class="mini-slide-img" src="https://picsum.photos/id/110/300/200"></div></div><div class="mini-slider-dots" id="slider3Dots"></div></div></div>
+      </div>
+    </div>
+    <button class="slider-scroll-btn" id="scrollRightBtn"><i class="fas fa-chevron-right"></i></button>
+  </div>
+
+  <div class="card-modern">
+    <h3>Пополнить баланс <strong>Steam</strong></h3>
+    <div class="row-flex">
+      <input class="input-modern" id="steamLogin" placeholder="Логин Steam">
+      <input class="input-modern" id="amountInput" type="number" value="1000" placeholder="Сумма">
+    </div>
+    <div class="small-text"><span>Комиссия 5%</span><span>Ввести промокод</span></div>
+    <div class="payment-section">
+      <button class="pay-btn-blue" id="payBtnDynamic"><i class="fas fa-credit-card"></i><span> Оплатить 1050 ₽</span></button>
+    </div>
+  </div>
+
+  <div class="games-header"><h4><span class="game-text">ИГРЫ</span></h4><button class="scroll-btn" onclick="scrollGames('left')"><i class="fas fa-chevron-left"></i></button><button class="scroll-btn" onclick="scrollGames('right')"><i class="fas fa-chevron-right"></i></button></div>
+  <div class="games-scroll-container" id="gamesScrollContainer"><div class="games-scroll-wrapper" id="gamesScrollWrapper"></div></div>
+
+  <div class="games-header">
+    <h4><span class="game-text">ПРИЛОЖЕНИЯ</span></h4>
+    <button class="scroll-btn" onclick="scrollApps('left')"><i class="fas fa-chevron-left"></i></button>
+    <button class="scroll-btn" onclick="scrollApps('right')"><i class="fas fa-chevron-right"></i></button>
+  </div>
+  <div class="games-scroll-container" id="appsScrollContainer">
+    <div class="games-scroll-wrapper" id="appsScrollWrapper"></div>
+  </div>
+  
+  <div class="products-header"><h4><i class="fas fa-fire"></i> Товары <span id="productCountStat" style="font-size: 0.7rem; color: var(--text-muted);">(0)</span></h4></div>
+  <div class="grid-modern" id="productsGrid"></div>
+</div>
+
+<!-- СТРАНИЦА КЛЮЧЕВОГО СЛОВА -->
+<div class="page" id="keywordPage">
+  <div class="keyword-page-header"><button class="back-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button><h2 id="keywordPageTitle"></h2></div>
+  <div class="grid-modern" id="keywordProductsGrid"></div>
+</div>
+
+<!-- ЗАМЕНИТЕ СУЩЕСТВУЮЩИЙ БЛОК ЧАТОВ НА ЭТОТ -->
+<div class="page" id="chat">
+  <div class="chats-container">
+    <!-- Сайдбар с диалогами -->
+    <div class="chats-sidebar" id="chatsSidebar">
+      <div class="chats-sidebar-header">
+        <h3>
+          <i class="fas fa-comments"></i>
+          Сообщения
+          <span class="unread-total-badge" style="display: none; background: #3b82f6; color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 20px; margin-left: 8px;">0</span>
+        </h3>
+        <div class="chat-search">
+          <i class="fas fa-search"></i>
+          <input type="text" id="chatSearchInput" placeholder="Поиск диалогов...">
+        </div>
+      </div>
+      <div class="dialogs-list" id="dialogsList"></div>
+    </div>
+
+    <!-- Окно чата -->
+    <div class="chat-window" id="chatWindow">
+      <div class="chat-window-header">
+        <button class="back-to-chat-list" id="backToChatList">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+        <div class="chat-partner-avatar" id="chatPartnerAvatar">👤</div>
+        <div class="chat-partner-info">
+          <div class="chat-partner-name" id="chatPartnerName">Выберите чат</div>
+          <div class="chat-partner-status" id="chatPartnerStatus">
+            <span class="status-offline"></span> не в сети
+          </div>
+        </div>
+      </div>
+      <div class="chat-messages-area" id="chatMessagesArea">
+        <div class="empty-messages">
+          <i class="fas fa-comment-dots"></i>
+          <p>Выберите диалог</p>
+          <span>Нажмите на чат слева, чтобы начать общение</span>
+        </div>
+      </div>
+      <div class="chat-input-wrapper">
+        <div class="chat-input-field">
+          <i class="fas fa-smile" style="color: #5e6f8d; cursor: pointer;"></i>
+          <input type="text" id="chatMessageInput" placeholder="Введите сообщение...">
+        </div>
+        <button class="chat-send-btn" id="sendChatMsgBtn">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="profile">
+  <div class="profile-new-container">
+    <!-- Hero-секция: аватар слева, информация справа на ПК -->
+    <div class="profile-hero-section" id="profileHeroSection">
+      <button class="change-bg-btn-hero" id="changeHeroBgBtn" title="Сменить фон вокруг аватара">
+        <i class="fas fa-palette"></i> Сменить фон
+      </button>
+      
+      <div class="avatar-centered">
+        <div class="avatar-wrapper">
+          <div class="avatar-circle" id="profileAvatarCircle">
+            <span id="avatarInitial">D</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="hero-info">
+        <div class="hero-name" id="profileUsername">Dichw</div>
+        <div class="hero-rating">
+          <span class="hero-stars">★★★★★</span>
+          <span class="hero-rating-value">5.0</span>
+        </div>
+        <div>
+          <span class="hero-reviews" id="profileReviewsLink">3 отзыва</span>
+        </div>
+        <div class="hero-since" id="profileJoined">на Плейнексис с января 2026</div>
+      </div>
+    </div>
+
+    <!-- Блок баланса -->
+    <div class="profile-balance-card">
+      <div class="balance-left">
+        <div class="wallet-icon">💼</div>
+        <span class="balance-amount" id="profileBalance">0,10 ₽</span>
+      </div>
+      <div class="balance-chevron">›</div>
+    </div>
+
+    <!-- Статистика сетка -->
+    <div class="profile-stats-grid">
+      <div class="stat-item">
+        <div class="stat-number" id="profileProductsCount">0</div>
+        <div class="stat-label">Мои товары</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number" id="profilePurchasesCount">0</div>
+        <div class="stat-label">Покупки</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number" id="profileSalesCount">0</div>
+        <div class="stat-label">Продажи</div>
+      </div>
+    </div>
+
+    <!-- Табы -->
+    <div class="profile-tabs">
+      <button class="profile-tab-btn active" data-tab="active">
+        <i class="fas fa-fire"></i> Активные <span id="activeCount">0</span>
+      </button>
+      <button class="profile-tab-btn" data-tab="completed">
+        <i class="fas fa-check-circle"></i> Завершённые <span id="completedCount">0</span>
+      </button>
+    </div>
+
+    <!-- Список товаров -->
+    <div class="profile-products-list" id="profileProductsList">
+      <div class="empty-products">
+        <i class="fas fa-box-open"></i>
+        <p>Нет товаров</p>
+        <p class="empty-subtitle">Пора выставить свой товар на продажу</p>
+        <button class="btn-glow sell-btn" onclick="window.openModal()">Выставить товар</button>
+      </div>
+    </div>
+
+    <!-- Способы оплаты -->
+    <div class="profile-payment-methods">
+      <h4><i class="fas fa-credit-card"></i> Способы оплаты</h4>
+      <div class="payment-icons">
+        <i class="fab fa-cc-visa"></i>
+        <i class="fab fa-cc-mastercard"></i>
+        <i class="fab fa-cc-mir"></i>
+        <i class="fab fa-apple-pay"></i>
+        <i class="fab fa-google-pay"></i>
+        <i class="fas fa-mobile-alt"></i>
+        <i class="fab fa-bitcoin"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- АДМИН ПАНЕЛЬ -->
+<div class="page" id="admin">
+  <div class="admin-container"><h2><i class="fas fa-user-shield"></i> Админ-панель</h2>
+    <div class="admin-card"><h3><i class="fas fa-gamepad"></i> Управление блоками игр</h3><div class="games-blocks-list" id="gamesBlocksList"></div><div class="add-game-block-form"><input type="text" id="newGameName" placeholder="Название игры/блока" class="input-modern"><select id="newGameKeyword" class="input-modern"><option value="">Выберите ключевое слово</option></select><select id="newGameIcon" class="input-modern"><option value="fas fa-gamepad">🎮 Gamepad</option><option value="fab fa-steam">🎮 Steam</option><option value="fab fa-discord">💬 Discord</option><option value="fas fa-crown">👑 Premium</option><option value="fas fa-tv">📺 Netflix</option><option value="fas fa-music">🎵 Spotify</option><option value="fas fa-crosshairs">🎯 Valorant</option><option value="fas fa-cube">🧱 Minecraft</option><option value="fas fa-skull">💀 CS</option><option value="fas fa-tree">🌲 Rust</option><option value="fas fa-plane">✈️ PUBG</option><option value="fas fa-tank">🚀 Танки</option></select><div class="form-group"><input type="text" id="newGameImageUrl" class="input-modern" placeholder="URL фото (оставьте пустым для использования иконки)" oninput="previewGameImage(this)"></div><div id="imagePreview" style="display: none; margin-top: 8px; text-align: center;"><div class="small-text" style="margin-bottom: 8px;">📷 Предпросмотр:</div><img id="previewImg" style="width: 80px; height: 80px; border-radius: 16px; object-fit: cover; border: 2px solid var(--accent-primary);"></div><button class="btn-glow" onclick="addGameBlock()">➕ Добавить блок</button></div></div>
+    <div class="admin-card"><h3><i class="fas fa-tags"></i> Ключевые слова (категории)</h3><div class="keywords-list" id="keywordsList"></div><div class="add-keyword-form"><input type="text" id="newKeyword" placeholder="Новое ключевое слово" class="input-modern"><input type="text" id="keywordType" placeholder="Тип подписки" class="input-modern"><button class="btn-glow" onclick="addKeyword()">➕ Добавить ключевое слово</button></div></div>
+    <div class="admin-card"><h3><i class="fas fa-plus-circle"></i> Создать товар</h3><div class="form-group"><select id="postKeyword" class="input-modern"><option value="">Выберите ключевое слово/категорию</option></select></div><div class="form-group"><input type="text" id="postType" placeholder="Тип подписки" class="input-modern"></div><div class="form-group"><input type="text" id="postTitle" placeholder="Название товара" class="input-modern"></div><div class="form-group"><input type="text" id="postPrice" placeholder="Цена" class="input-modern"></div><div class="form-group"><input type="text" id="postDiscount" placeholder="Скидка" class="input-modern"></div><div class="form-group"><textarea id="postDescription" placeholder="Описание товара" rows="4" class="input-modern"></textarea></div><div class="form-group"><input type="text" id="postImageUrl" placeholder="URL фото" class="input-modern"></div><div class="form-group"><input type="text" id="postSeller" placeholder="Продавец" class="input-modern"></div><button class="btn-glow" onclick="createAdminProduct()">📦 Опубликовать товар</button></div>
+    <div class="admin-card"><h3><i class="fas fa-list"></i> Управление товарами</h3><div class="admin-products-list" id="adminProductsList"></div></div>
+    <div class="admin-card">
+      <h3><i class="fas fa-mobile-alt"></i> Управление блоками приложений</h3>
+      <div class="games-blocks-list" id="appsBlocksList"></div>
+      <div class="add-game-block-form">
+        <input type="text" id="newAppName" placeholder="Название приложения" class="input-modern">
+        <select id="newAppKeyword" class="input-modern"><option value="">Выберите ключевое слово</option></select>
+        <select id="newAppIcon" class="input-modern">
+          <option value="fab fa-telegram">📱 Telegram</option>
+          <option value="fab fa-whatsapp">📱 WhatsApp</option>
+          <option value="fab fa-instagram">📸 Instagram</option>
+          <option value="fab fa-tiktok">🎵 TikTok</option>
+          <option value="fab fa-youtube">📺 YouTube</option>
+          <option value="fab fa-spotify">🎵 Spotify</option>
+          <option value="fas fa-tv">📺 Netflix</option>
+          <option value="fab fa-discord">💬 Discord</option>
+          <option value="fab fa-android">🤖 Android</option>
+          <option value="fab fa-apple">🍎 Apple</option>
+        </select>
+        <div class="form-group">
+          <input type="text" id="newAppImageUrl" class="input-modern" placeholder="URL фото" oninput="previewAppImage(this)">
+        </div>
+        <div id="appImagePreview" style="display: none; margin-top: 8px; text-align: center;">
+          <div class="small-text">📷 Предпросмотр:</div>
+          <img id="appPreviewImg" style="width: 80px; height: 80px; border-radius: 16px; object-fit: cover; border: 2px solid var(--accent-primary);">
+        </div>
+        <button class="btn-glow" onclick="addAppBlock()">➕ Добавить блок приложения</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ДЕТАЛЬНАЯ КАРТОЧКА ТОВАРА -->
+<!-- ДЕТАЛЬНАЯ КАРТОЧКА ТОВАРА (НОВЫЙ ДИЗАЙН) -->
+<div id="detailPage" class="detail-page">
+  <div class="detail-header">
+    <h2><i class="fas fa-info-circle"></i> Детали товара</h2>
+    <button class="close-detail" onclick="window.closeDetail()">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+  <div id="detailContent"></div>
+</div>
+<!-- МОДАЛКА СОЗДАНИЯ ТОВАРА -->
+<div class="modal-glass" id="modalOverlay"><div class="modal-content"><h3>✨ Создать товар</h3><select id="productKeyword" class="input-modern"><option value="">Выберите ключевое слово/категорию</option></select><input type="text" id="productType" class="input-modern" placeholder="Тип подписки"><input class="input-modern" id="productTitle" placeholder="Название товара"><input class="input-modern" id="productPrice" placeholder="Цена"><textarea id="productDescription" class="input-modern" rows="3" placeholder="Описание товара"></textarea><input class="input-modern" id="productImageUrl" placeholder="URL фото"><button class="btn-glow" onclick="window.createNewProduct()">📦 Создать</button><button class="btn-glow" style="background:#334155;" onclick="window.closeModal()">Отмена</button></div></div>
+
+<!-- НИЖНЯЯ НАВИГАЦИЯ (только для мобильных) -->
+<div class="bottom-nav" id="bottomNav">
+  <button class="nav-btn active" data-nav="home"><i class="fas fa-home"></i><span>Главная</span></button>
+  <button class="nav-btn" data-nav="chat"><i class="fab fa-telegram"></i><span>Чаты</span></button>
+  <button class="nav-btn plus-btn" onclick="window.openModal()"><i class="fas fa-plus"></i><span></span></button>
+  <button class="nav-btn" data-nav="profile"><i class="fas fa-user-circle"></i><span>Профиль</span></button>
+  <div class="wave"></div>
+</div>
+
+<!-- ФУТЕР (ПОДВАЛ) ДЛЯ ВСЕХ СТРАНИЦ -->
+<footer class="site-footer">
+  <div class="footer-container">
+    <!-- Способы оплаты -->
+    <div class="footer-section">
+      <h4 class="footer-title">Способы оплаты</h4>
+      <div class="payment-methods-footer">
+        <div class="payment-icon">🛒</div>
+        <div class="payment-icon">💳</div>
+        <div class="payment-icon">📱</div>
+        <div class="payment-icon">💵</div>
+        <div class="payment-icon visa">Visa</div>
+        <div class="payment-icon mastercard">Mastercard</div>
+        <div class="payment-icon mir">МИР</div>
+      </div>
+    </div>
+
+    <!-- Информация -->
+    <div class="footer-section">
+      <h4 class="footer-title">Информация</h4>
+      <ul class="footer-links-list">
+        <li><a href="#" onclick="showInfo('privacy')">Политика конфиденциальности</a></li>
+        <li><a href="#" onclick="showInfo('info')">Условия продажи</a></li>
+        <li><a href="#" onclick="showInfo('about')">Пользовательское соглашение</a></li>
+        <li><a href="#" onclick="showInfo('contacts')">Контакты</a></li>
+      </ul>
+    </div>
+
+    <!-- Социальные сети -->
+    <div class="footer-section">
+      <h4 class="footer-title">Социальные сети</h4>
+      <div class="social-links">
+        <a href="#" class="social-link">🔗</a>
+        <a href="#" class="social-link">👥</a>
+        <a href="#" class="social-link">🤝</a>
+        <a href="#" class="social-link">🌐</a>
+        <a href="#" class="social-link telegram">R</a>
+      </div>
+    </div>
+
+    <!-- Поддержка и копирайт -->
+    <div class="footer-section">
+      <h4 class="footer-title">Поддержка</h4>
+      <button class="support-btn" onclick="navigate('chat')">📩 Написать в поддержку</button>
+    </div>
+  </div>
+
+  <div class="footer-copyright">
+    <p>2026 © Плейнексис — маркетплейс цифровых товаров и услуг. Все права защищены.</p>
+  </div>
+</footer>
+<script src="js/auth.js"></script>
+<script src="js/slider.js"></script>
+<script src="js/products.js"></script>
+<script src="js/chats.js"></script>  <!-- НОВАЯ ВЕРСИЯ -->
+<script src="js/admin.js"></script>
+<script src="js/app.js"></script>
+<script src="js/typewriter.js"></script>
+<script src="js/profile-new.js"></script>
+</body>
+</html>
