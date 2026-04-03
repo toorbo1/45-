@@ -94,7 +94,86 @@ function formatPriceWithDiscount(product) {
     discountText: null
   };
 }
+// ========== УЛУЧШЕНИЕ МОБИЛЬНЫХ КАРТОЧЕК ==========
+(function() {
+  function optimizeMobileCards() {
+    if (window.innerWidth > 600) return;
+    
+    // Находим все контейнеры с изображениями
+    const wrappers = document.querySelectorAll('.product-img-wrapper');
+    
+    wrappers.forEach(wrapper => {
+      // Удаляем лишние padding которые могут вызывать обрезку
+      wrapper.style.padding = '0';
+      
+      // Находим изображение внутри
+      const img = wrapper.querySelector('img');
+      if (img) {
+        // Убеждаемся что изображение не обрезается
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = '100%';
+        img.style.width = 'auto';
+        img.style.height = 'auto';
+        img.style.objectFit = 'contain';
+        
+        // Если изображение еще не загружено, ждем
+        if (!img.complete) {
+          img.onload = function() {
+            img.style.opacity = '1';
+          };
+        }
+      }
+    });
+  }
+  
+  // Запускаем при загрузке
+  document.addEventListener('DOMContentLoaded', optimizeMobileCards);
+  
+  // Запускаем при изменении размера окна
+  window.addEventListener('resize', function() {
+    setTimeout(optimizeMobileCards, 100);
+  });
+  
+  // Запускаем при динамической загрузке товаров
+  if (window.MutationObserver) {
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.addedNodes.length) {
+          setTimeout(optimizeMobileCards, 50);
+        }
+      });
+    });
+    
+    const container = document.getElementById('productsGrid');
+    if (container) {
+      observer.observe(container, { childList: true, subtree: true });
+    }
+  }
+})();
 
+// Дополнительная функция для обновления карточек при загрузке изображений
+function fixProductImages() {
+  const images = document.querySelectorAll('.product-img-wrapper img');
+  images.forEach(img => {
+    if (!img.complete) {
+      img.onload = function() {
+        const wrapper = this.closest('.product-img-wrapper');
+        if (wrapper) {
+          wrapper.style.minHeight = 'auto';
+        }
+      };
+    }
+  });
+}
+
+// Вызываем после каждой загрузки товаров
+if (typeof filterProducts === 'function') {
+  const originalFilter = filterProducts;
+  window.filterProducts = function() {
+    originalFilter.apply(this, arguments);
+    setTimeout(fixProductImages, 100);
+  };
+}
 // ОСНОВНАЯ ФУНКЦИЯ РЕНДЕРИНГА ТОВАРОВ
 function renderProductGrid(products) {
   const container = document.getElementById("productsGrid");
