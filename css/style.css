@@ -177,7 +177,324 @@ body::before {
   overflow: hidden;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8);
 }
+/* ========== АДАПТИВНЫЕ КАРТОЧКИ С ИЗОБРАЖЕНИЯМИ ДЛЯ МАРКЕТПЛЕЙСА ========== */
+/* Изображения полностью помещаются в контейнер без обрезки (object-fit: contain) */
 
+/* Базовый контейнер карточки */
+.product-card {
+  background: var(--bg-elevated);
+  border-radius: 20px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+/* Контейнер изображения — фиксированное соотношение 1:1 */
+.product-img-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;  /* Квадратный контейнер, можно изменить на 4/3 */
+  background: linear-gradient(135deg, #1a1f2e, #0f121c);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 12px;  /* Отступы внутри контейнера, чтобы картинка не прилипала к краям */
+}
+
+/* Фоновый blur-эффект для заполнения пустого пространства */
+.product-img-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(20px);
+  opacity: 0.4;
+  z-index: 0;
+}
+
+/* Динамический фон для blur-эффекта (устанавливается через JS или inline) */
+.product-img-wrapper.has-blur::before {
+  background-image: var(--blur-bg, none);
+}
+
+/* Само изображение — contain без обрезки */
+.product-img-wrapper img {
+  position: relative;
+  z-index: 1;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;  /* Ключевое свойство — изображение полностью помещается */
+  border-radius: 12px;
+  transition: transform 0.2s ease;
+}
+
+/* Плейсхолдер для изображений (иконка) */
+.product-img-wrapper i {
+  font-size: 3rem;
+  color: var(--accent-primary);
+  opacity: 0.5;
+  z-index: 1;
+  position: relative;
+}
+
+/* Бейдж скидки — поверх всего, но не мешает изображению */
+.discount-badge-img {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(2px);
+}
+
+/* Тело карточки */
+.product-body {
+  padding: 12px;
+  flex: 1;
+  background: var(--bg-elevated);
+}
+
+/* Цена и скидка */
+.product-price-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.product-price {
+  color: var(--green-bright);
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.product-old-price {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  text-decoration: line-through;
+}
+
+/* Название товара */
+.product-title {
+  font-weight: 500;
+  font-size: 0.85rem;
+  margin-top: 6px;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-main);
+}
+
+/* Рейтинг */
+.product-rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.product-stars {
+  color: var(--gold);
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+}
+
+.product-reviews-count {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+/* ========== АДАПТИВ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ ========== */
+
+/* Телефоны (320px - 480px) */
+@media (max-width: 480px) {
+  .product-card {
+    border-radius: 16px;
+  }
+  
+  .product-img-wrapper {
+    padding: 8px;  /* Меньше отступов на мобильных */
+  }
+  
+  .product-img-wrapper i {
+    font-size: 2rem;
+  }
+  
+  .product-body {
+    padding: 10px;
+  }
+  
+  .product-price {
+    font-size: 0.9rem;
+  }
+  
+  .product-title {
+    font-size: 0.75rem;
+  }
+  
+  .product-stars {
+    font-size: 0.6rem;
+  }
+  
+  .product-reviews-count {
+    font-size: 0.55rem;
+  }
+  
+  .discount-badge-img {
+    font-size: 0.6rem;
+    padding: 3px 8px;
+    top: 6px;
+    left: 6px;
+  }
+}
+
+/* Очень маленькие телефоны (до 380px) */
+@media (max-width: 380px) {
+  .product-img-wrapper {
+    padding: 6px;
+  }
+  
+  .product-body {
+    padding: 8px;
+  }
+  
+  .product-price {
+    font-size: 0.8rem;
+  }
+  
+  .product-title {
+    font-size: 0.7rem;
+  }
+}
+
+/* Планшеты (481px - 768px) */
+@media (min-width: 481px) and (max-width: 768px) {
+  .product-img-wrapper {
+    padding: 10px;
+  }
+  
+  .product-price {
+    font-size: 0.95rem;
+  }
+  
+  .product-title {
+    font-size: 0.8rem;
+  }
+}
+
+/* ========== АЛЬТЕРНАТИВНЫЙ ВАРИАНТ С СООТНОШЕНИЕМ 4:3 ========== */
+/* Раскомментируйте этот блок, если хотите использовать соотношение 4:3 вместо 1:1 */
+/*
+.product-img-wrapper {
+  aspect-ratio: 4 / 3;
+}
+*/
+
+/* ========== ВАРИАНТ С NEUTRAL BACKGROUND ДЛЯ ПУСТОГО ПРОСТРАНСТВА ========== */
+.product-img-wrapper.neutral-bg {
+  background: #1a1f2e;
+}
+
+.product-img-wrapper.neutral-bg::before {
+  display: none;
+}
+
+/* ========== АНИМАЦИЯ ПРИ ЗАГРУЗКЕ ИЗОБРАЖЕНИЙ ========== */
+.product-img-wrapper img {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.product-img-wrapper img.loaded {
+  opacity: 1;
+}
+
+/* ========== СЕТКА ДЛЯ РАЗНЫХ ЭКРАНОВ ========== */
+/* Базовая сетка для мобильных — 1 колонка */
+.grid-modern {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+}
+
+/* Маленькие телефоны (от 380px) — 2 колонки */
+@media (min-width: 380px) {
+  .grid-modern {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
+/* Телефоны (от 480px) — 2 колонки с большим отступом */
+@media (min-width: 480px) {
+  .grid-modern {
+    gap: 14px;
+  }
+}
+
+/* Планшеты (от 600px) — 3 колонки */
+@media (min-width: 600px) {
+  .grid-modern {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+}
+
+/* Планшеты (от 768px) — 3 колонки */
+@media (min-width: 768px) {
+  .grid-modern {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+}
+
+/* Ноутбуки (от 1024px) — 4 колонки */
+@media (min-width: 1024px) {
+  .grid-modern {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+  }
+}
+
+/* ПК (от 1280px) — 5 колонок */
+@media (min-width: 1280px) {
+  .grid-modern {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 20px;
+  }
+}
+
+/* Большие экраны (от 1600px) — 6 колонок */
+@media (min-width: 1600px) {
+  .grid-modern {
+    grid-template-columns: repeat(6, 1fr);
+    gap: 24px;
+  }
+}
 /* Карточки товаров - черные */
 .product-card {
   background: var(--bg-elevated);
