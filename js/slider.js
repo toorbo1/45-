@@ -149,3 +149,17 @@ function initSlider(sliderId, imagesId, dotsId, totalSlides) {
 document.addEventListener('DOMContentLoaded', function() {
   setTimeout(initMiniSliders, 100);
 });
+
+// Применение object-fit: contain ко всем изображениям в слайдерах
+function fixSliderImages() {
+  const images = document.querySelectorAll('.mini-slide-img, .slide-img');
+  images.forEach(img => {
+    img.style.objectFit = 'contain';
+    img.style.aspectRatio = '4/3';
+    img.style.background = '#0a0a0a';
+  });
+}
+
+// Запускаем после загрузки и при каждой смене слайда
+setTimeout(fixSliderImages, 100);
+setInterval(fixSliderImages, 500);
