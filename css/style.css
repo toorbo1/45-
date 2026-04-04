@@ -5822,3 +5822,137 @@ text-align: center;
     font-size: 0.7rem !important;
   }
 }
+
+/* ========== УМЕНЬШЕНИЕ КАРТОЧЕК ТОВАРОВ НА МОБИЛЬНЫХ ========== */
+
+/* Для мобильных экранов - уменьшаем сами карточки */
+@media (max-width: 768px) {
+  /* Уменьшаем саму карточку товара */
+  .product-card {
+    max-width: 160px !important;
+    border-radius: 14px !important;
+    margin: 0 auto !important;
+  }
+  
+  /* Уменьшаем контейнер с изображением */
+  .product-img-wrapper {
+    height: 110px !important;
+    aspect-ratio: 4 / 3 !important;
+  }
+  
+  /* Уменьшаем изображение внутри */
+  .product-img-wrapper img {
+    max-width: 85% !important;
+    max-height: 85% !important;
+  }
+  
+  /* Уменьшаем цену */
+  .product-price {
+    font-size: 0.7rem !important;
+  }
+  
+  /* Уменьшаем название товара */
+  .product-title {
+    font-size: 0.6rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  
+  /* Уменьшаем звёзды рейтинга */
+  .product-stars {
+    font-size: 0.45rem !important;
+  }
+  
+  /* Уменьшаем количество отзывов */
+  .product-reviews-count {
+    font-size: 0.45rem !important;
+  }
+  
+  /* Уменьшаем отступы внутри карточки */
+  .product-body {
+    padding: 6px !important;
+  }
+  
+  /* Уменьшаем бейдж скидки */
+  .discount-badge-img {
+    font-size: 0.45rem !important;
+    padding: 2px 5px !important;
+    top: 3px !important;
+    left: 3px !important;
+  }
+  
+  /* Уменьшаем старую цену (зачёркнутую) */
+  .product-old-price {
+    font-size: 0.55rem !important;
+  }
+}
+
+/* Для очень маленьких экранов (320px-380px) - ещё меньше карточки */
+@media (max-width: 380px) {
+  .product-card {
+    max-width: 135px !important;
+  }
+  
+  .product-img-wrapper {
+    height: 95px !important;
+  }
+  
+  .product-price {
+    font-size: 0.65rem !important;
+  }
+  
+  .product-title {
+    font-size: 0.55rem !important;
+  }
+  
+  .product-body {
+    padding: 4px !important;
+  }
+}
+
+/* Для экранов 381px-430px */
+@media (min-width: 381px) and (max-width: 430px) {
+  .product-card {
+    max-width: 150px !important;
+  }
+  
+  .product-img-wrapper {
+    height: 105px !important;
+  }
+}
+
+/* Для экранов 431px-600px */
+@media (min-width: 431px) and (max-width: 600px) {
+  .product-card {
+    max-width: 170px !important;
+  }
+  
+  .product-img-wrapper {
+    height: 120px !important;
+  }
+}
+/* ========== УМЕНЬШЕНИЕ СЕТКИ ТОВАРОВ НА МОБИЛЬНЫХ ========== */
+@media (max-width: 768px) {
+  /* Уменьшаем сетку - 2 колонки с маленькими карточками */
+  .grid-modern {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(130px, 160px)) !important;
+    gap: 8px !important;
+    justify-content: center !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .grid-modern {
+    grid-template-columns: repeat(2, minmax(110px, 135px)) !important;
+    gap: 6px !important;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 600px) {
+  .grid-modern {
+    grid-template-columns: repeat(3, minmax(130px, 170px)) !important;
+    gap: 10px !important;
+  }
+}
