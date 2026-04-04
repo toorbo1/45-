@@ -640,6 +640,56 @@ document.addEventListener('DOMContentLoaded', function() {
   setTimeout(updateUserProductsCount, 100);
   initGlobalSearch();
 });
+// Фикс изображений на мобильных — принудительное применение contain
+(function fixMobileImages() {
+  function applyImageFix() {
+    const isMobile = window.innerWidth <= 768;
+    if (!isMobile) return;
+    
+    const productImages = document.querySelectorAll('.product-img-wrapper img');
+    productImages.forEach(img => {
+      img.style.objectFit = 'contain';
+      img.style.maxWidth = '100%';
+      img.style.maxHeight = '100%';
+      img.style.width = 'auto';
+      img.style.height = 'auto';
+      img.style.borderRadius = '8px';
+    });
+    
+    const detailImages = document.querySelectorAll('.product-detail-image');
+    detailImages.forEach(img => {
+      img.style.objectFit = 'contain';
+      img.style.maxWidth = '100%';
+      img.style.maxHeight = '280px';
+      img.style.width = 'auto';
+      img.style.height = 'auto';
+    });
+  }
+  
+  // Запускаем при загрузке
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyImageFix);
+  } else {
+    applyImageFix();
+  }
+  
+  // Запускаем при изменении размера окна
+  let resizeTimer;
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(applyImageFix, 150);
+  });
+  
+  // Запускаем при динамической загрузке товаров
+  const observer = new MutationObserver(function() {
+    applyImageFix();
+  });
+  
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+})();
 
 // Экспортируем функции
 window.openKeywordPageByBlock = openKeywordPageByBlock;

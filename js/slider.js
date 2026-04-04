@@ -263,3 +263,25 @@ function fixSliderImages() {
 // Запускаем после загрузки и при каждой смене слайда
 setTimeout(fixSliderImages, 100);
 setInterval(fixSliderImages, 500);
+
+// Фикс для мини-слайдеров на мобильных
+function fixMiniSlidersOnMobile() {
+  const isMobile = window.innerWidth <= 768;
+  const slides = document.querySelectorAll('.mini-slide-img');
+  
+  slides.forEach(img => {
+    if (isMobile) {
+      img.style.objectFit = 'contain';
+      img.style.aspectRatio = '4/3';
+      img.style.backgroundColor = '#0a0a0a';
+      img.style.padding = '4px';
+    } else {
+      img.style.objectFit = 'cover';
+      img.style.padding = '0';
+    }
+  });
+}
+
+// Запускаем при загрузке и изменении размера
+window.addEventListener('load', fixMiniSlidersOnMobile);
+window.addEventListener('resize', fixMiniSlidersOnMobile);
