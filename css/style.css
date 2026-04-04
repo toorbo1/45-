@@ -192,7 +192,9 @@ body::before {
   flex-direction: column;
 }
 
-/* Контейнер изображения — НЕ обрезает, а вписывает */
+/* ========== АДАПТИВНЫЕ ИЗОБРАЖЕНИЯ (уменьшаются с экраном) ========== */
+
+/* Контейнер изображения — резиновый */
 .product-img-wrapper {
   position: relative;
   width: 100%;
@@ -202,20 +204,60 @@ body::before {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border-radius: 16px;
+  border-radius: 12px;
 }
 
-/* Изображение — полностью помещается без обрезки */
+/* Изображение — масштабируется вместе с контейнером */
 .product-img-wrapper img {
-  max-width: 100%;
-  max-height: 100%;
-  width: auto;
-  height: auto;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
-  border-radius: 8px;
-  transition: none;
+  border-radius: 6px;
 }
 
+/* Для очень маленьких экранов — контейнер становится меньше */
+@media (max-width: 480px) {
+  .product-img-wrapper {
+    aspect-ratio: 4 / 3;
+  }
+  
+  .product-img-wrapper img {
+    object-fit: contain;
+    padding: 4px;
+  }
+}
+
+/* Для экранов 320px */
+@media (max-width: 380px) {
+  .product-img-wrapper {
+    aspect-ratio: 4 / 3;
+  }
+  
+  .product-img-wrapper img {
+    padding: 2px;
+  }
+}
+/* Сетка товаров — резиновая */
+.grid-modern {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+/* На маленьких экранах — минимальная ширина карточки меньше */
+@media (max-width: 480px) {
+  .grid-modern {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 8px;
+  }
+}
+
+@media (max-width: 380px) {
+  .grid-modern {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 6px;
+  }
+}
 /* Плейсхолдер иконка */
 .product-img-wrapper i {
   font-size: 2rem;
@@ -5661,5 +5703,122 @@ text-align: center;
   
   .detail-image-col {
     text-align: center;
+  }
+}
+
+/* ========== УМЕНЬШЕНИЕ ФОТО В СЛАЙДЕРАХ НА МОБИЛЬНЫХ ========== */
+@media (max-width: 768px) {
+  .mini-slide-img {
+    max-width: 90% !important;
+    max-height: 100px !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
+    margin: 0 auto !important;
+    display: block !important;
+  }
+  
+  .mini-slider-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .slider-card {
+    min-width: 240px !important;
+  }
+}
+
+/* ========== УМЕНЬШЕНИЕ ФОТО ТОВАРОВ ПОСЛЕ БЛОКА "Цифровой маркетплейс" ========== */
+
+/* Для мобильных экранов - уменьшаем изображения в карточках товаров */
+@media (max-width: 768px) {
+  /* Уменьшаем контейнер изображения */
+  .product-img-wrapper {
+    aspect-ratio: 4 / 3 !important;
+    max-height: 120px !important;
+    background: #0a0a0a;
+  }
+  
+  /* Само изображение - уменьшенное, не обрезается */
+  .product-img-wrapper img {
+    max-width: 85% !important;
+    max-height: 85% !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
+  }
+  
+  /* Уменьшаем бейдж скидки */
+  .discount-badge-img {
+    font-size: 0.5rem !important;
+    padding: 2px 6px !important;
+    top: 4px !important;
+    left: 4px !important;
+  }
+  
+  /* Уменьшаем цену */
+  .product-price {
+    font-size: 0.75rem !important;
+  }
+  
+  /* Уменьшаем название */
+  .product-title {
+    font-size: 0.65rem !important;
+  }
+  
+  /* Уменьшаем звёзды */
+  .product-stars {
+    font-size: 0.5rem !important;
+  }
+  
+  /* Уменьшаем количество отзывов */
+  .product-reviews-count {
+    font-size: 0.5rem !important;
+  }
+  
+  /* Уменьшаем отступы внутри карточки */
+  .product-body {
+    padding: 6px 8px !important;
+  }
+}
+
+/* Для очень маленьких экранов (320px-380px) */
+@media (max-width: 380px) {
+  .product-img-wrapper {
+    max-height: 100px !important;
+  }
+  
+  .product-img-wrapper img {
+    max-width: 80% !important;
+    max-height: 80% !important;
+  }
+  
+  .product-price {
+    font-size: 0.7rem !important;
+  }
+  
+  .product-title {
+    font-size: 0.6rem !important;
+  }
+}
+
+/* Для экранов 481px-600px (большие телефоны) */
+@media (min-width: 481px) and (max-width: 600px) {
+  .product-img-wrapper {
+    max-height: 110px !important;
+  }
+  
+  .product-img-wrapper img {
+    max-width: 85% !important;
+    max-height: 85% !important;
+  }
+  
+  .product-price {
+    font-size: 0.8rem !important;
+  }
+  
+  .product-title {
+    font-size: 0.7rem !important;
   }
 }
