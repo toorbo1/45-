@@ -295,14 +295,14 @@ body::before {
   color: var(--text-muted);
 }
 
-/* ========== МОБИЛЬНАЯ СЕТКА (очень плотная) ========== */
+/* ========== МОБИЛЬНАЯ СЕТКА (компактные карточки) ========== */
 
-/* Телефоны до 480px — 2 колонки, карточки компактные */
+/* Телефоны до 480px — 2 колонки, карточки узкие */
 @media (max-width: 480px) {
   .grid-modern {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 8px;  /* Минимальный отступ между карточками */
+    gap: 8px; /* Минимальный отступ между карточками */
   }
   
   .product-card {
@@ -310,7 +310,7 @@ body::before {
   }
   
   .product-img-wrapper {
-    aspect-ratio: 1 / 1;
+    height: 100px; /* Компактная высота */
   }
   
   .product-img-wrapper i {
@@ -351,22 +351,14 @@ body::before {
   }
 }
 
-/* Очень маленькие телефоны (320px-380px) — ещё меньше */
+/* Очень маленькие телефоны (320px-380px) — ещё уже */
 @media (max-width: 380px) {
   .grid-modern {
     gap: 6px;
   }
   
-  .product-card {
-    border-radius: 10px;
-  }
-  
   .product-img-wrapper {
-    aspect-ratio: 1 / 1;
-  }
-  
-  .product-img-wrapper i {
-    font-size: 1.2rem;
+    height: 85px;
   }
   
   .product-body {
@@ -379,34 +371,29 @@ body::before {
   
   .product-title {
     font-size: 0.6rem;
-    margin-top: 2px;
-  }
-  
-  .product-old-price {
-    font-size: 0.5rem;
-  }
-  
-  .discount-badge-img {
-    font-size: 0.45rem;
-    padding: 1px 4px;
-    top: 2px;
-    left: 2px;
-  }
-  
-  .product-stars {
-    font-size: 0.45rem;
-    letter-spacing: 0.3px;
-  }
-  
-  .product-reviews-count {
-    font-size: 0.4rem;
   }
 }
 
-/* Телефоны 390px-430px (современные) */
+/* Экран 390px-430px (современные телефоны) */
 @media (min-width: 381px) and (max-width: 430px) {
   .grid-modern {
     gap: 8px;
+  }
+  
+  .product-img-wrapper {
+    height: 105px;
+  }
+}
+
+/* Большие телефоны (481px-600px) — 3 колонки */
+@media (min-width: 481px) and (max-width: 600px) {
+  .grid-modern {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  
+  .product-img-wrapper {
+    height: 100px;
   }
   
   .product-price {
@@ -420,7 +407,7 @@ body::before {
 
 /* ========== СТАРЫЕ СТИЛИ (переопределяем для мобильных) ========== */
 
-/* Переопределяем глобальные отступы на мобилках */
+/* Убираем лишние отступы по бокам на мобильных */
 @media (max-width: 768px) {
   .page {
     padding-left: 8px !important;
