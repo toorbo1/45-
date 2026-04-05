@@ -541,3 +541,8 @@ setTimeout(function() {
   updateUserProductsCount();
   if (typeof initGamesScroll === 'function') initGamesScroll();
 }, 100);
+
+// Инициализация blob навигации
+if (typeof initBlobNavigation === 'function') {
+    initBlobNavigation();
+}

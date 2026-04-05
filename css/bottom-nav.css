@@ -1,129 +1,137 @@
-/* НИЖНЕЕ МЕНЮ (ОСНОВНОЕ) */
+/* ========== НИЖНЯЯ ПАНЕЛЬ С LIQUID BLOB ЭФФЕКТОМ ========== */
+
 .bottom-nav {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(0, 0, 0, 0.95);
-  backdrop-filter: blur(20px);
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  padding: 8px 16px 20px;
-  border-top: 1px solid rgba(59,130,246,0.1);
+  background: rgba(10, 14, 23, 0.95);
+  backdrop-filter: blur(25px);
+  border-top: 0.5px solid rgba(30, 70, 50, 0.3);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
   z-index: 1000;
+  will-change: transform;
 }
 
-.nav-btn {
-  background: none;
-  border: none;
+.nav-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 10px 12px 16px;
+}
+
+.nav-item {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  color: var(--text-muted);
-  font-size: 0.7rem;
-  cursor: pointer;
-  transition: color 0.3s;
-  padding: 6px 16px;
-  font-weight: 500;
-}
-
-.nav-btn i {
-  font-size: 1.5rem;
-  margin-bottom: 2px;
-}
-
-.nav-btn.active {
-  color: var(--green-bright);
-}
-
-.plus-btn {
-  background: var(--green-bright);
-  color: #0a0f1c;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  display: flex;
-  flex-direction: column;
   justify-content: center;
-  align-items: center;
-  transform: translateY(-20px);
-  box-shadow: 0 5px 15px rgba(34,197,94,0.4);
-}
-
-.plus-btn i {
-  font-size: 1.6rem;
-  margin: 0;
-}
-
-.plus-btn span {
-  font-size: 0.6rem;
-  margin-top: 2px;
-}
-
-.wave {
-  position: absolute;
-  bottom: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--green-bright), var(--accent-secondary));
-  border-radius: 3px;
-  transition: left 0.3s ease, width 0.3s ease;
-  z-index: 1;
-}
-
-/* Специальное нижнее меню для профиля (скрыто по умолчанию) */
-.profile-bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(10, 15, 28, 0.95);
-  backdrop-filter: blur(20px);
-  display: none;
-  justify-content: space-around;
-  align-items: center;
-  padding: 8px 16px 20px;
-  border-top: 1px solid var(--border-light);
-  z-index: 1000;
-}
-
-/* Показываем специальное меню ТОЛЬКО когда активна страница профиля */
-.page#profile.active ~ .profile-bottom-nav,
-.page#profile.active + .profile-bottom-nav,
-.profile-bottom-nav.active {
-  display: flex;
-}
-
-/* Также показываем если профиль активен и меню находится после него */
-body:has(.page#profile.active) .profile-bottom-nav {
-  display: flex;
-}
-
-/* Скрываем основное меню когда активен профиль */
-body:has(.page#profile.active) .bottom-nav {
-  display: none;
-}
-
-.profile-nav-btn {
-  background: none;
-  border: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  color: var(--text-muted);
-  font-size: 0.7rem;
+  padding: 8px 0 4px;
   cursor: pointer;
-  transition: color 0.3s;
-  padding: 6px 16px;
+  z-index: 10;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  transition: transform 0.15s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nav-item:active {
+  transform: scale(0.94);
+}
+
+.nav-icon {
+  font-size: 26px;
+  margin-bottom: 4px;
+  transition: all 0.25s cubic-bezier(0.34, 1.2, 0.64, 1);
+  color: rgba(255, 255, 255, 0.6);
+  will-change: transform;
+}
+
+.nav-label {
+  font-size: 11px;
   font-weight: 500;
+  letter-spacing: 0.3px;
+  transition: all 0.25s cubic-bezier(0.34, 1.2, 0.64, 1);
+  color: rgba(255, 255, 255, 0.6);
 }
 
-.profile-nav-btn i {
-  font-size: 1.3rem;
+.nav-item.active .nav-label {
+  color: white;
+  font-weight: 600;
 }
 
-.profile-nav-btn.active {
-  color: var(--green-bright);
+.nav-item.active .nav-icon {
+  color: white;
+  filter: drop-shadow(0 2px 6px rgba(0, 100, 50, 0.4));
+  transform: translateY(-2px);
+}
+
+/* Blob анимация */
+.blob {
+  position: absolute;
+  background: #0A5C3E;
+  border-radius: 60px;
+  height: 54px;
+  bottom: 10px;
+  width: 70px;
+  box-shadow: 0 8px 20px rgba(6, 78, 52, 0.5);
+  will-change: left, width, transform;
+  filter: url('#gooeyFilter');
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+.particles-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 7;
+}
+
+/* Фильтр для gooey эффекта */
+.gooey-filter {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Адаптив */
+@media (max-width: 480px) {
+  .nav-container {
+    padding: 8px 12px 14px;
+  }
+  .blob {
+    height: 48px;
+    bottom: 8px;
+  }
+  .nav-icon {
+    font-size: 24px;
+  }
+  .nav-label {
+    font-size: 10px;
+  }
+}
+
+/* Safe area для iPhone */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .nav-container {
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Скрываем старую волну */
+.wave {
+  display: none !important;
 }

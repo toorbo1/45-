@@ -23,6 +23,7 @@
   <link rel="stylesheet" href="css/products-manage.css">
   <link rel="stylesheet" href="css/responsive.css">
   <link rel="stylesheet" href="css/tasks-create.css">
+
 </head>
 <body>
 <div class="header">
@@ -375,15 +376,41 @@
 <!-- МОДАЛКА СОЗДАНИЯ ТОВАРА (старая, для совместимости) -->
 <div class="modal-glass" id="modalOverlay"><div class="modal-content"><h3>✨ Создать товар</h3><select id="productKeyword" class="input-modern"><option value="">Выберите ключевое слово/категорию</option></select><input type="text" id="productType" class="input-modern" placeholder="Тип подписки"><input class="input-modern" id="productTitleOld" placeholder="Название товара"><input class="input-modern" id="productPriceOld" placeholder="Цена"><textarea id="productDescriptionOld" class="input-modern" rows="3" placeholder="Описание товара"></textarea><input class="input-modern" id="productImageUrlOld" placeholder="URL фото"><button class="btn-glow" onclick="window.createNewProductOld()">📦 Создать</button><button class="btn-glow" style="background:#334155;" onclick="window.closeModal()">Отмена</button></div></div>
 
-<!-- НИЖНЯЯ НАВИГАЦИЯ -->
-<div class="bottom-nav" id="bottomNav">
-  <button class="nav-btn active" data-nav="home"><i class="fas fa-home"></i><span>Главная</span></button>
-  <button class="nav-btn" data-nav="chat"><i class="fab fa-telegram"></i><span>Чаты</span></button>
-  <button class="nav-btn" data-nav="products-manage"><i class="fas fa-tag"></i><span>Товары</span></button>
-  <button class="nav-btn plus-btn" onclick="window.showCreateProductForm()"><i class="fas fa-plus"></i><span></span></button>
-  <button class="nav-btn" data-nav="profile"><i class="fas fa-user-circle"></i><span>Профиль</span></button>
-  <div class="wave"></div>
+<!-- НИЖНЯЯ НАВИГАЦИЯ С LIQUID BLOB ЭФФЕКТОМ -->
+<div class="bottom-nav">
+    <div class="nav-container" id="navContainer">
+        <button class="nav-item active" data-nav="home">
+            <div class="nav-icon">🏠</div>
+            <div class="nav-label">Главная</div>
+        </button>
+        <button class="nav-item" data-nav="chat">
+            <div class="nav-icon">💬</div>
+            <div class="nav-label">Чаты</div>
+        </button>
+        <button class="nav-item" data-nav="products-manage">
+            <div class="nav-icon">🏷️</div>
+            <div class="nav-label">Товары</div>
+        </button>
+        <button class="nav-item" data-nav="profile">
+            <div class="nav-icon">👤</div>
+            <div class="nav-label">Профиль</div>
+        </button>
+        
+        <div id="mainBlob" class="blob"></div>
+        <div id="particlesContainer" class="particles-container"></div>
+    </div>
 </div>
+
+<!-- SVG фильтр для gooey эффекта -->
+<svg class="gooey-filter" style="position: absolute; width: 0; height: 0; pointer-events: none;">
+    <defs>
+        <filter id="gooeyFilter">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
+            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -8" result="gooey" />
+            <feComposite in="SourceGraphic" in2="gooey" operator="atop" />
+        </filter>
+    </defs>
+</svg>
 
 <!-- ФУТЕР -->
 <footer class="site-footer">
@@ -405,6 +432,6 @@
 <script src="js/typewriter.js"></script>
 <script src="js/profile-new.js"></script>
 <script src="js/products-manage.js"></script>
-
+<script src="js/bottom-nav-blob.js"></script>
 </body>
 </html>
