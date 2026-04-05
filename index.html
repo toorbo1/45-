@@ -380,19 +380,19 @@
 <div class="bottom-nav">
     <div class="nav-container" id="navContainer">
         <button class="nav-item active" data-nav="home">
-            <div class="nav-icon">🏠</div>
+            <div class="nav-icon"></div>
             <div class="nav-label">Главная</div>
         </button>
         <button class="nav-item" data-nav="chat">
-            <div class="nav-icon">💬</div>
+            <div class="nav-icon"></div>
             <div class="nav-label">Чаты</div>
         </button>
         <button class="nav-item" data-nav="products-manage">
-            <div class="nav-icon">🏷️</div>
+            <div class="nav-icon"></div>
             <div class="nav-label">Товары</div>
         </button>
         <button class="nav-item" data-nav="profile">
-            <div class="nav-icon">👤</div>
+            <div class="nav-icon"></div>
             <div class="nav-label">Профиль</div>
         </button>
         
@@ -405,8 +405,8 @@
 <svg class="gooey-filter" style="position: absolute; width: 0; height: 0; pointer-events: none;">
     <defs>
         <filter id="gooeyFilter">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
-            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -8" result="gooey" />
+            <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur" />
+            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -9" result="gooey" />
             <feComposite in="SourceGraphic" in2="gooey" operator="atop" />
         </filter>
     </defs>

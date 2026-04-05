@@ -1,4 +1,5 @@
 // ========== НИЖНЯЯ ПАНЕЛЬ С LIQUID BLOB ЭФФЕКТОМ ==========
+// Зеленая капля - ТОЛЬКО ПОДСВЕТКА, без значка внутри
 
 (function() {
     let navItems = null;
@@ -9,6 +10,22 @@
     let isAnimating = false;
     let animTimer = null;
 
+    // Минималистичные SVG иконки (только для кнопок)
+    const icons = {
+        home: `<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+        chat: `<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
+        products: `<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>`,
+        profile: `<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
+    };
+
+    // Конфигурация вкладок
+    const tabConfig = {
+        home: { icon: icons.home, label: 'Главная' },
+        chat: { icon: icons.chat, label: 'Чаты' },
+        'products-manage': { icon: icons.products, label: 'Товары' },
+        profile: { icon: icons.profile, label: 'Профиль' }
+    };
+
     // Функция для получения позиции кнопки
     function getButtonPos(tabId) {
         const btn = document.querySelector(`.nav-item[data-nav="${tabId}"]`);
@@ -18,55 +35,42 @@
         return {
             left: btnRect.left - containerRect.left,
             width: btnRect.width,
-            center: (btnRect.left - containerRect.left) + btnRect.width / 2
+            center: (btnRect.left - containerRect.left) + btnRect.width / 2,
+            top: btnRect.top - containerRect.top,
+            height: btnRect.height
         };
     }
 
-    // Установка позиции блоба
-    function setBlobPos(left, width, withTransition = true) {
-        if (!mainBlob) return;
-        if (withTransition) {
-            mainBlob.style.transition = 'left 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1), width 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1)';
-        } else {
-            mainBlob.style.transition = 'none';
-        }
-        mainBlob.style.left = left + 'px';
-        mainBlob.style.width = width + 'px';
-        if (!withTransition) {
-            void mainBlob.offsetHeight;
-        }
-    }
-
-    // Создание частиц при клике
-    function createParticles(x, y, count = 6) {
+    // Создание зеленых частиц при клике
+    function createParticles(x, y, count = 8) {
         if (!particlesContainer) return;
         for (let i = 0; i < count; i++) {
             const p = document.createElement('div');
             p.style.position = 'absolute';
-            p.style.background = '#0A5C3E';
+            p.style.background = '#10b981';
             p.style.borderRadius = '50%';
             p.style.pointerEvents = 'none';
             const size = 2 + Math.random() * 5;
             const angle = Math.random() * Math.PI * 2;
-            const dist = 12 + Math.random() * 30;
+            const dist = 15 + Math.random() * 35;
             const dx = Math.cos(angle) * dist;
-            const dy = Math.sin(angle) * dist - 8;
+            const dy = Math.sin(angle) * dist - 10;
             
             p.style.width = size + 'px';
             p.style.height = size + 'px';
             p.style.left = (x - size/2) + 'px';
             p.style.top = (y - size/2) + 'px';
-            p.style.opacity = '0.5';
+            p.style.opacity = '0.7';
             
             particlesContainer.appendChild(p);
             
             requestAnimationFrame(() => {
-                p.style.transition = 'all 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.2)';
-                p.style.transform = 'translate(' + dx + 'px, ' + dy + 'px) scale(0.1)';
+                p.style.transition = 'all 0.45s cubic-bezier(0.2, 0.9, 0.4, 1.2)';
+                p.style.transform = 'translate(' + dx + 'px, ' + dy + 'px) scale(0)';
                 p.style.opacity = '0';
             });
             
-            setTimeout(() => p.remove(), 400);
+            setTimeout(() => p.remove(), 450);
         }
     }
 
@@ -86,33 +90,37 @@
         
         const fromCenter = fromPos.center;
         const toCenter = toPos.center;
+        const fromY = fromPos.top + fromPos.height / 2;
+        const toY = toPos.top + toPos.height / 2;
         
         // Частицы на старте
-        createParticles(fromCenter, 28, 5);
+        createParticles(fromCenter, fromY, 6);
         
-        // Анимация блоба
+        // Анимация блоба - только left и width, height и bottom не меняем
         mainBlob.style.transition = 'left 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1), width 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1)';
         mainBlob.style.left = toPos.left + 'px';
         mainBlob.style.width = toPos.width + 'px';
         
         // Частицы в конце
-        createParticles(toCenter, 28, 6);
+        setTimeout(() => {
+            createParticles(toCenter, toY, 8);
+        }, 200);
         
         if (animTimer) clearTimeout(animTimer);
         animTimer = setTimeout(() => {
-            // Пульсация
+            // Пульсация капли
             mainBlob.style.transition = 'transform 0.25s cubic-bezier(0.34, 1.2, 0.64, 1), box-shadow 0.25s ease';
-            mainBlob.style.transform = 'scale(1.04)';
-            mainBlob.style.boxShadow = '0 12px 28px rgba(6, 78, 52, 0.6)';
+            mainBlob.style.transform = 'scale(1.05)';
+            mainBlob.style.boxShadow = '0 6px 25px rgba(16, 185, 129, 0.5)';
             
             setTimeout(() => {
                 mainBlob.style.transform = 'scale(1)';
-                mainBlob.style.boxShadow = '0 8px 20px rgba(6, 78, 52, 0.5)';
-            }, 250);
+                mainBlob.style.boxShadow = '0 4px 20px rgba(16, 185, 129, 0.4)';
+            }, 200);
             
             setTimeout(() => {
                 mainBlob.style.transition = '';
-            }, 300);
+            }, 250);
             
             // Обновляем активные кнопки
             if (navItems) {
@@ -132,7 +140,7 @@
         }, 400);
     }
 
-    // Переключение страницы (интеграция с существующей навигацией)
+    // Переключение страницы
     function switchToPage(pageId) {
         if (typeof window.navigate === 'function') {
             window.navigate(pageId);
@@ -155,11 +163,22 @@
             return;
         }
         
+        // Устанавливаем SVG иконки для кнопок
+        navItems.forEach(item => {
+            const tabId = item.getAttribute('data-nav');
+            const iconContainer = item.querySelector('.nav-icon');
+            if (iconContainer && tabConfig[tabId]) {
+                iconContainer.innerHTML = tabConfig[tabId].icon;
+            }
+        });
+        
         // Устанавливаем начальную позицию блоба
+        // НЕ устанавливаем height и bottom через JS, чтобы работал CSS
         const homePos = getButtonPos('home');
         if (homePos) {
             mainBlob.style.left = homePos.left + 'px';
             mainBlob.style.width = homePos.width + 'px';
+            // НЕ трогаем height и bottom - они из CSS
         }
         
         // Устанавливаем активную кнопку
@@ -167,12 +186,13 @@
         if (activeBtn && activeBtn.getAttribute('data-nav')) {
             currentTab = activeBtn.getAttribute('data-nav');
         } else {
-            document.querySelector('.nav-item[data-nav="home"]')?.classList.add('active');
+            const homeBtn = document.querySelector('.nav-item[data-nav="home"]');
+            if (homeBtn) homeBtn.classList.add('active');
+            currentTab = 'home';
         }
         
         // Добавляем обработчики
         navItems.forEach(item => {
-            // Удаляем старые обработчики, если есть
             const newItem = item.cloneNode(true);
             item.parentNode.replaceChild(newItem, item);
             
@@ -180,7 +200,7 @@
                 e.preventDefault();
                 e.stopPropagation();
                 const tabId = newItem.getAttribute('data-nav');
-                if (tabId && tabId !== 'plus') {
+                if (tabId) {
                     animateToTab(tabId);
                     switchToPage(tabId);
                 }
@@ -197,7 +217,7 @@
             clearTimeout(resizeTimer);
             resizeTimer = setTimeout(() => {
                 const pos = getButtonPos(currentTab);
-                if (pos) {
+                if (pos && mainBlob) {
                     mainBlob.style.transition = 'none';
                     mainBlob.style.left = pos.left + 'px';
                     mainBlob.style.width = pos.width + 'px';
@@ -208,20 +228,21 @@
         
         // Начальная анимация
         setTimeout(() => {
-            const pos = getButtonPos(currentTab);
-            if (pos) {
+            if (mainBlob) {
                 mainBlob.style.transition = 'transform 0.25s ease';
                 mainBlob.style.transform = 'scale(1.02)';
                 setTimeout(() => mainBlob.style.transform = 'scale(1)', 200);
                 setTimeout(() => mainBlob.style.transition = '', 250);
             }
         }, 300);
+        
+        console.log('Blob navigation initialized');
     }
 
     // Экспортируем функцию
     window.initBlobNavigation = initBlobNavigation;
     
-    // Автоматическая инициализация после загрузки DOM
+    // Автоматическая инициализация
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initBlobNavigation);
     } else {
