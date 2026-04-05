@@ -192,7 +192,6 @@
 
 .profile-balance-card:hover {
   background: #1e2a3a;
-  transform: translateY(-2px);
 }
 
 .balance-left {
@@ -339,8 +338,6 @@
 }
 
 .profile-product-item:hover {
-  transform: translateX(6px);
-  border-left: 3px solid #3f82ff;
   background: #111111;
 }
 

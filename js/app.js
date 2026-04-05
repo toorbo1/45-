@@ -196,16 +196,19 @@ function showPage(pageId) {
   const mainBottomNav = document.getElementById('bottomNav');
   const profileBottomNav = document.querySelector('.profile-bottom-nav');
   
-  if (pageId === 'profile') {
-    if (mainBottomNav) mainBottomNav.style.display = 'none';
-    if (profileBottomNav) profileBottomNav.style.display = 'flex';
-    if (typeof loadUserProductsInProfile === 'function') loadUserProductsInProfile();
-    if (typeof updateProfileUI === 'function') updateProfileUI();
-  } else {
-    if (mainBottomNav) mainBottomNav.style.display = 'flex';
-    if (profileBottomNav) profileBottomNav.style.display = 'none';
-  }
-  
+if (pageId === 'profile') {
+  if (mainBottomNav) mainBottomNav.style.display = 'none';
+  if (profileBottomNav) profileBottomNav.style.display = 'flex';
+  if (typeof loadUserProductsInProfile === 'function') loadUserProductsInProfile();
+  if (typeof updateProfileUI === 'function') updateProfileUI();
+} else if (pageId === 'products-manage') {
+  if (mainBottomNav) mainBottomNav.style.display = 'flex';
+  if (profileBottomNav) profileBottomNav.style.display = 'none';
+  if (typeof renderUserProductsList === 'function') renderUserProductsList();
+} else {
+  if (mainBottomNav) mainBottomNav.style.display = 'flex';
+  if (profileBottomNav) profileBottomNav.style.display = 'none';
+}
   // Обновляем активные кнопки
   updateActiveNavButtons(pageId);
   updateDesktopNavButtons(pageId);

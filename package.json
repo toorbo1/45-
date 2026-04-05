@@ -1,0 +1,16 @@
+{
+  "name": "pleinexis",
+  "version": "1.0.0",
+  "description": "Биржа цифровых подписок",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "multer": "^1.4.5-lts.1",
+    "socket.io": "^4.5.4",
+    "uuid": "^9.0.0",
+    "cors": "^2.8.5"
+  }
+}
