@@ -173,11 +173,12 @@
   }
 }
 
-/* Стили для карточек и изображений - ПРИНУДИТЕЛЬНОЕ ЗАПОЛНЕНИЕ */
+/* Базовые стили для карточек */
 .slider-card {
   background: #0f0f0f;
   border: 1px solid rgba(59, 130, 246, 0.15);
   overflow: hidden;
+  border-radius: 20px;
 }
 
 .mini-slider {
@@ -201,6 +202,8 @@
   height: auto;
   display: block;
   flex-shrink: 0;
+  object-fit: contain;
+  background: #0a0a0a;
 }
 
 /* ДЕСКТОП (от 769px) */
@@ -210,7 +213,6 @@
     min-width: 300px !important;
     max-width: 340px !important;
     margin: 0 10px !important;
-    border-radius: 20px !important;
   }
   .mini-slider-wrapper {
     aspect-ratio: 16 / 9;
@@ -228,86 +230,94 @@
   }
 }
 
-/* МОБИЛЬНЫЕ (до 768px) - фото ВО ВСЮ ШИРИНУ, ВЫСОТА АВТОМАТИЧЕСКАЯ */
+/* МОБИЛЬНЫЕ (до 768px) - блоки НИЖЕ, фото ЦЕЛИКОМ */
 @media (max-width: 768px) {
   .slider-card {
     flex: 0 0 auto !important;
-    min-width: 280px !important;
-    max-width: 320px !important;
+    min-width: 240px !important;
+    max-width: 270px !important;
     margin: 0 8px !important;
-    border-radius: 16px !important;
+    border-radius: 14px !important;
   }
   
   .mini-slider-wrapper {
     width: 100%;
-    /* Убираем aspect-ratio, чтобы высота была автоматической */
+    max-height: 130px;
+    overflow: hidden;
   }
   
   .mini-slider-images img {
     width: 100% !important;
     height: auto !important;
-    min-height: 180px;
-    object-fit: cover !important;
-    aspect-ratio: 4 / 3;
+    max-height: 130px;
+    object-fit: contain !important;
+    object-position: center !important;
   }
   
   .mini-slider-dots {
     display: flex;
     justify-content: center;
     gap: 8px;
-    padding: 10px 0;
+    padding: 6px 0;
     background: rgba(0, 0, 0, 0.5);
-  }
-  
-  .mini-dot {
-    width: 6px;
-    height: 6px;
-    background: #6b7280;
-    border-radius: 50%;
-  }
-  .mini-dot.active {
-    background: #3b82f6;
-    width: 18px;
-  }
-}
-
-/* ОЧЕНЬ МАЛЕНЬКИЕ ЭКРАНЫ (до 480px) */
-@media (max-width: 480px) {
-  .slider-card {
-    min-width: 250px !important;
-    max-width: 280px !important;
-    margin: 0 6px !important;
-    border-radius: 14px !important;
-  }
-  
-  .mini-slider-images img {
-    min-height: 160px;
-    aspect-ratio: 4 / 3;
   }
   
   .mini-dot {
     width: 5px;
     height: 5px;
+    background: #6b7280;
+    border-radius: 50%;
   }
   .mini-dot.active {
+    background: #3b82f6;
     width: 16px;
+  }
+}
+
+/* ОЧЕНЬ МАЛЕНЬКИЕ ЭКРАНЫ (до 480px) - ещё ниже блоки */
+@media (max-width: 480px) {
+  .slider-card {
+    min-width: 210px !important;
+    max-width: 240px !important;
+    margin: 0 6px !important;
+    border-radius: 12px !important;
+  }
+  
+  .mini-slider-wrapper {
+    max-height: 110px;
+  }
+  
+  .mini-slider-images img {
+    max-height: 110px;
+  }
+  
+  .mini-dot {
+    width: 4px;
+    height: 4px;
+  }
+  .mini-dot.active {
+    width: 14px;
   }
 }
 
 /* САМЫЕ МАЛЕНЬКИЕ (до 380px) */
 @media (max-width: 380px) {
   .slider-card {
-    min-width: 220px !important;
-    max-width: 250px !important;
+    min-width: 190px !important;
+    max-width: 220px !important;
     margin: 0 4px !important;
   }
   
+  .mini-slider-wrapper {
+    max-height: 100px;
+  }
+  
   .mini-slider-images img {
-    min-height: 140px;
+    max-height: 100px;
   }
 }
 
-/* Точки навигации */
+/* Точки навигации (общие стили) */
 .mini-slider-dots {
   display: flex;
   justify-content: center;
@@ -636,14 +646,4 @@
 .keyword-page-header h2 {
   font-size: 1.3rem;
   font-weight: 600;
-}
-
-/* ПРИНУДИТЕЛЬНЫЙ ФИКС ДЛЯ ВСЕХ МОБИЛЬНЫХ */
-@media (max-width: 768px) {
-  .mini-slider-images img {
-    width: 100% !important;
-    height: 200px !important;
-    min-height: 200px !important;
-    object-fit: cover !important;
-  }
 }
