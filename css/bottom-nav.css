@@ -88,56 +88,42 @@
   transform: translateY(-2px);
 }
 
-/* Blob анимация - ЗЕЛЕНАЯ капля, поднятая выше */
+/* Blob анимация - ЗЕЛЕНАЯ капля, центрированная по вертикали */
 .blob {
   position: absolute;
   background: #10b981;
   border-radius: 40px;
   height: 52px;
-  /* Меняем bottom на top - поднимаем каплю */
-  top: 15px;  /* ← Поднимите каплю выше, увеличив это значение */
-  transform: translateY(0);
+  top: 50%;
+  transform: translateY(-50%);
   box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);
   will-change: left, width;
   filter: url('#gooeyFilter');
   backface-visibility: hidden;
   transition: left 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1), width 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1);
   z-index: 5;
-  bottom: auto;  /* Отключаем привязку к низу */
 }
 
-/* Для мобильных устройств */
+/* Мобильные устройства */
 @media (max-width: 768px) {
+  .nav-container {
+    padding: 10px 12px 20px;
+    min-height: 75px;
+  }
+  
   .blob {
     height: 48px !important;
-    top: 10px !important;  /* На телефонах тоже поднимаем */
+    top: 50% !important;
+    transform: translateY(-50%) !important;
     bottom: auto !important;
   }
 }
 
 @media (max-width: 480px) {
-  .blob {
-    height: 44px !important;
-    top: 8px !important;
-    bottom: auto !important;
-    border-radius: 35px !important;
+  .nav-container {
+    padding: 8px 12px 18px;
+    min-height: 70px;
   }
-}
-
-@media (max-width: 380px) {
-  .blob {
-    height: 40px !important;
-    top: 8px !important;
-  }
-}
-
-/* Safe area для iPhone */
-@supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .blob {
-    top: 15px !important;
-    bottom: auto !important;
-  }
-}
   
   .blob {
     height: 44px !important;
@@ -155,7 +141,7 @@
   .nav-label {
     font-size: 9px;
   }
-
+}
 
 @media (max-width: 380px) {
   .nav-container {
