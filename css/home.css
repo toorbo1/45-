@@ -190,6 +190,7 @@
   width: 100%;
   overflow: hidden;
   background: #0a0a0a;
+  position: relative;
 }
 
 .mini-slider-images {
@@ -220,6 +221,7 @@
   }
   .mini-slider-images img {
     aspect-ratio: 16 / 9;
+    object-fit: cover;
   }
   .mini-dot {
     width: 6px;
@@ -230,74 +232,85 @@
   }
 }
 
-/* МОБИЛЬНЫЕ (до 768px) - блоки низкие, картинки cover (легкое обрезание) */
-@media (max-width: 768px) {
+/* ПЛАНШЕТЫ (601px-768px) */
+@media (min-width: 601px) and (max-width: 768px) {
   .slider-card {
     flex: 0 0 auto !important;
-    min-width: 250px !important;
-    max-width: 280px !important;
+    min-width: 260px !important;
+    max-width: 290px !important;
     margin: 0 8px !important;
     border-radius: 14px !important;
   }
-  
   .mini-slider-wrapper {
-    width: 100%;
-    height: 140px;
+    height: 150px;
   }
-  
   .mini-slider-images {
-    height: 140px;
+    height: 150px;
   }
-  
   .mini-slider-images img {
+    height: 150px !important;
     width: 100% !important;
-    height: 140px !important;
     object-fit: cover !important;
-    object-position: center 30% !important;
   }
-  
-  .mini-slider-dots {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    padding: 6px 0;
-    background: rgba(0, 0, 0, 0.5);
-  }
-  
   .mini-dot {
     width: 5px;
     height: 5px;
-    background: #6b7280;
-    border-radius: 50%;
   }
   .mini-dot.active {
-    background: #3b82f6;
+    width: 18px;
+  }
+}
+
+/* МОБИЛЬНЫЕ (481px-600px) */
+@media (min-width: 481px) and (max-width: 600px) {
+  .slider-card {
+    flex: 0 0 auto !important;
+    min-width: 240px !important;
+    max-width: 270px !important;
+    margin: 0 8px !important;
+    border-radius: 14px !important;
+  }
+  .mini-slider-wrapper {
+    height: 140px;
+  }
+  .mini-slider-images {
+    height: 140px;
+  }
+  .mini-slider-images img {
+    height: 140px !important;
+    width: 100% !important;
+    object-fit: cover !important;
+    object-position: center !important;
+  }
+  .mini-dot {
+    width: 5px;
+    height: 5px;
+  }
+  .mini-dot.active {
     width: 16px;
   }
 }
 
-/* ОЧЕНЬ МАЛЕНЬКИЕ ЭКРАНЫ (до 480px) */
-@media (max-width: 480px) {
+/* МАЛЕНЬКИЕ ТЕЛЕФОНЫ (380px-480px) */
+@media (min-width: 380px) and (max-width: 480px) {
   .slider-card {
+    flex: 0 0 auto !important;
     min-width: 220px !important;
     max-width: 250px !important;
     margin: 0 6px !important;
     border-radius: 12px !important;
   }
-  
   .mini-slider-wrapper {
-    height: 125px;
+    height: 130px;
   }
-  
   .mini-slider-images {
-    height: 125px;
+    height: 130px;
   }
-  
   .mini-slider-images img {
-    height: 125px !important;
-    object-position: center 25% !important;
+    height: 130px !important;
+    width: 100% !important;
+    object-fit: cover !important;
   }
-  
   .mini-dot {
     width: 4px;
     height: 4px;
@@ -307,24 +320,32 @@
   }
 }
 
-/* САМЫЕ МАЛЕНЬКИЕ (до 380px) */
+/* ОЧЕНЬ МАЛЕНЬКИЕ (до 380px) */
 @media (max-width: 380px) {
   .slider-card {
+    flex: 0 0 auto !important;
     min-width: 200px !important;
     max-width: 230px !important;
     margin: 0 4px !important;
+    border-radius: 12px !important;
   }
-  
   .mini-slider-wrapper {
-    height: 115px;
+    height: 120px;
   }
-  
   .mini-slider-images {
-    height: 115px;
+    height: 120px;
   }
-  
   .mini-slider-images img {
-    height: 115px !important;
+    height: 120px !important;
+    width: 100% !important;
+    object-fit: cover !important;
+  }
+  .mini-dot {
+    width: 4px;
+    height: 4px;
+  }
+  .mini-dot.active {
+    width: 12px;
   }
 }
 
@@ -333,12 +354,10 @@
   display: flex;
   justify-content: center;
   gap: 8px;
-  padding: 10px 0;
-  background: rgba(0, 0, 0, 0.6);
+  padding: 8px 0;
+  background: rgba(0, 0, 0, 0.5);
 }
 .mini-dot {
-  width: 6px;
-  height: 6px;
   background: #6b7280;
   border-radius: 50%;
   cursor: pointer;
@@ -346,7 +365,6 @@
 }
 .mini-dot.active {
   background: #3b82f6;
-  width: 20px;
   border-radius: 10px;
 }
 
