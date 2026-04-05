@@ -234,18 +234,3 @@
   display: none !important;
 }
 
-/* ПРИНУДИТЕЛЬНЫЕ СТИЛИ ДЛЯ МОБИЛЬНЫХ */
-@media (max-width: 768px) {
-  .bottom-nav .blob {
-    bottom: 4px !important;
-    top: auto !important;
-    transform: none !important;
-  }
-}
-
-
-@media (max-width: 480px) {
-  .bottom-nav .blob {
-    bottom: 2px !important;
-  }
-}
