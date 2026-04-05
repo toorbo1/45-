@@ -1,18 +1,32 @@
 /* ========== НИЖНЯЯ ПАНЕЛЬ С LIQUID BLOB ЭФФЕКТОМ ========== */
 
+
 .bottom-nav {
   position: fixed;
-  bottom: 30px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: calc(100% - 32px);
-  max-width: 500px;
-  border-radius: 30px;
+  bottom: 20px !important;  /* принудительно поднимаем */
+  left: 0 !important;
+  right: 0 !important;
+  transform: none !important;
+  width: 100% !important;
   background: rgba(10, 14, 23, 0.95);
   backdrop-filter: blur(25px);
-  border-top: none;
-  border: 0.5px solid rgba(255, 255, 255, 0.1);
-  /* остальное без изменений */
+  border-top: 0.5px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  will-change: transform;
+}
+
+/* Принудительный подъём на телефонах */
+@media (max-width: 768px) {
+  .bottom-nav {
+    bottom: 25px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .bottom-nav {
+    bottom: 30px !important;
+  }
 }
 
 .nav-container {
