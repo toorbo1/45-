@@ -2,7 +2,7 @@
 
 .bottom-nav {
   position: fixed;
-  bottom: 0;
+  bottom: 15px;
   left: 0;
   right: 0;
   background: rgba(10, 14, 23, 0.95);
