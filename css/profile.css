@@ -552,6 +552,32 @@
   transform: scale(1.02);
 }
 
+/* Кнопка редактирования товара */
+.edit-product-btn {
+  background: rgba(59, 130, 246, 0.2);
+  border: none;
+  color: #3b82f6;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.edit-product-btn:hover {
+  background: #3b82f6 !important;
+  color: white !important;
+  transform: scale(1.05);
+}
+
+.edit-product-btn:active {
+  transform: scale(0.95);
+}
+
 /* ========== АДАПТИВ ДЛЯ МОБИЛЬНЫХ ========== */
 @media (max-width: 768px) {
   .profile-new-container {
@@ -695,29 +721,3 @@
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   }
 }
-/* Кнопка редактирования товара */
-.edit-product-btn {
-  background: rgba(59, 130, 246, 0.2);
-  border: none;
-  color: #3b82f6;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.edit-product-btn:hover {
-  background: #3b82f6 !important;
-  color: white !important;
-  transform: scale(1.05);
-}
-
-.edit-product-btn:active {
-  transform: scale(0.95);
-}
-
