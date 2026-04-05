@@ -88,21 +88,55 @@
   transform: translateY(-2px);
 }
 
-/* Blob анимация - ЗЕЛЕНАЯ капля */
+/* Blob анимация - ЗЕЛЕНАЯ капля (десктоп) */
 .blob {
   position: absolute;
   background: #10b981;
   border-radius: 40px;
-  bottom: 12px;  /* ← опускаем ниже */
-  height: 52px;  /* ← высота капли */
-  width: 70px;   /* ← базовая ширина, будет переопределена JS */
+  bottom: 8px;
+  height: 52px;
   box-shadow: 0 4px 20px rgba(16, 185, 129, 0.5);
   will-change: left, width, transform;
   filter: url('#gooeyFilter');
   backface-visibility: hidden;
   transform: translateZ(0);
-  transition: all 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+  transition: left 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1), width 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1);
   z-index: 5;
+}
+
+/* Адаптив для мобильных - ПЕРЕОПРЕДЕЛЯЕМ bottom */
+@media (max-width: 768px) {
+  .blob {
+    bottom: 4px !important;
+    height: 48px !important;
+    border-radius: 35px !important;
+  }
+}
+
+/* Очень маленькие телефоны */
+@media (max-width: 480px) {
+  .blob {
+    bottom: 2px !important;
+    height: 44px !important;
+    border-radius: 30px !important;
+  }
+}
+
+/* Safe area для iPhone с вырезом */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .blob {
+    bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+  @media (max-width: 768px) {
+    .blob {
+      bottom: calc(4px + env(safe-area-inset-bottom)) !important;
+    }
+  }
+  @media (max-width: 480px) {
+    .blob {
+      bottom: calc(2px + env(safe-area-inset-bottom)) !important;
+    }
+  }
 }
 /* Контент внутри капли - ТОЛЬКО ИКОНКА */
 .blob-content {
@@ -198,4 +232,19 @@
 }
 .plus-btn {
   display: none !important;
+}
+
+/* ПРИНУДИТЕЛЬНЫЕ СТИЛИ ДЛЯ МОБИЛЬНЫХ */
+@media (max-width: 768px) {
+  .bottom-nav .blob {
+    bottom: 4px !important;
+    top: auto !important;
+    transform: none !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .bottom-nav .blob {
+    bottom: 2px !important;
+  }
 }
