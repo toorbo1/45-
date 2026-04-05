@@ -77,17 +77,38 @@
     <button class="slider-scroll-btn" id="scrollRightBtn"><i class="fas fa-chevron-right"></i></button>
   </div>
 
-  <div class="card-modern">
-    <h3>Пополнить баланс <strong>Steam</strong></h3>
-    <div class="row-flex">
+<!-- ПОПОЛНЕНИЕ БАЛАНСА STEAM -->
+<div class="card-modern">
+  <h3>
+    Пополнить баланс 
+    <strong>Steam</strong>
+  </h3>
+  
+  <div class="steam-fields-row">
+    <div class="field-group">
       <input class="input-modern" id="steamLogin" placeholder="Логин Steam">
+    </div>
+    <div class="field-group">
       <input class="input-modern" id="amountInput" type="number" value="1000" placeholder="Сумма">
     </div>
-    <div class="small-text"><span>Комиссия 5%</span><span>Ввести промокод</span></div>
-    <div class="payment-section">
-      <button class="pay-btn-blue" id="payBtnDynamic"><i class="fas fa-credit-card"></i><span> Оплатить 1050 ₽</span></button>
-    </div>
   </div>
+  
+  <div class="steam-info-row">
+    <span class="commission-badge">
+      <i class="fas fa-percent"></i> Комиссия 5%
+    </span>
+    <button class="promo-btn" onclick="alert('Введите промокод для получения скидки')">
+      <i class="fas fa-ticket-alt"></i> Ввести промокод
+    </button>
+  </div>
+  
+  <div class="payment-section">
+    <button class="pay-btn-blue" id="payBtnDynamic">
+      <i class="fas fa-credit-card"></i>
+      <span> Оплатить 1050 ₽</span>
+    </button>
+  </div>
+</div>
 
   <div class="games-header"><h4><span class="game-text">ИГРЫ</span></h4><button class="scroll-btn" onclick="scrollGames('left')"><i class="fas fa-chevron-left"></i></button><button class="scroll-btn" onclick="scrollGames('right')"><i class="fas fa-chevron-right"></i></button></div>
   <div class="games-scroll-container" id="gamesScrollContainer"><div class="games-scroll-wrapper" id="gamesScrollWrapper"></div></div>

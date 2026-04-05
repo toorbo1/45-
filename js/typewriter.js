@@ -14,7 +14,7 @@
   let typewriterElement = null;     // Ссылка на DOM-элемент
   
   // Скорость (в миллисекундах)
-  const TYPING_SPEED = 150;        // Скорость печати символа
+  const TYPING_SPEED = 250;        // Скорость печати символа
   const DELETING_SPEED = 80;       // Скорость удаления символа
   const PAUSE_BETWEEN_PHRASES = 2000; // Пауза перед удалением/сменой фразы
   
