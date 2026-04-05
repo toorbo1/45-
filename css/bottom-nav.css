@@ -158,7 +158,7 @@
     min-height: 68px;
   }
   .blob {
-    bottom: 14px;  /* было 24px, стало 14px (-10px) */
+    bottom: 6px;
     height: 48px;
   }
   .nav-icon svg {
