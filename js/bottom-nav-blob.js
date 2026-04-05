@@ -166,16 +166,16 @@
             }
         });
         
-        // Устанавливаем начальную позицию блоба - центрирование по вертикали
-        const homePos = getButtonPos('home');
-        if (homePos) {
-            mainBlob.style.left = homePos.left + 'px';
-            mainBlob.style.width = homePos.width + 'px';
-            // Вертикальное центрирование
-            mainBlob.style.top = '50%';
-            mainBlob.style.transform = 'translateY(-50%)';
-            mainBlob.style.bottom = 'auto';
-        }
+// Устанавливаем начальную позицию блоба
+const homePos = getButtonPos('home');
+if (homePos) {
+    mainBlob.style.left = homePos.left + 'px';
+    mainBlob.style.width = homePos.width + 'px';
+    // ВЕРТИКАЛЬНОЕ ПОЛОЖЕНИЕ - сверху
+    mainBlob.style.top = '12px';  // ← Поднимаем каплю
+    mainBlob.style.transform = 'none';
+    mainBlob.style.bottom = 'auto';
+}
         
         // Устанавливаем активную кнопку
         const activeBtn = document.querySelector('.nav-item.active');
