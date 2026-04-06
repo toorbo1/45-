@@ -361,6 +361,50 @@ function setupChatSearch() {
   }
 }
 
+// Добавьте эту функцию в chats.js если её нет
+
+function openDialog(dialogId) {
+  const dialog = dialogs.find(d => d.id === dialogId);
+  if (!dialog) return;
+  
+  currentDialogId = dialogId;
+  
+  // Сбрасываем непрочитанные
+  if (dialog.unread > 0) {
+    dialog.unread = 0;
+    localStorage.setItem("apex_dialogs", JSON.stringify(dialogs));
+    renderDialogsList();
+  }
+  
+  // Обновляем заголовок чата
+  const partnerNameEl = document.getElementById("chatPartnerName");
+  const partnerAvatarEl = document.getElementById("chatPartnerAvatar");
+  const partnerStatusEl = document.getElementById("chatPartnerStatus");
+  
+  if (partnerNameEl) partnerNameEl.innerText = dialog.name;
+  if (partnerAvatarEl) partnerAvatarEl.innerHTML = dialog.avatar || "👤";
+  if (partnerStatusEl) {
+    if (dialog.online) {
+      partnerStatusEl.innerHTML = '<span class="status-online"></span> онлайн';
+    } else {
+      partnerStatusEl.innerHTML = '<span class="status-offline"></span> не в сети';
+    }
+  }
+  
+  renderMessages(dialogId);
+  markMessagesAsRead(dialogId);
+  
+  // На мобильных устройствах показываем окно чата
+  if (window.innerWidth <= 768) {
+    const sidebar = document.getElementById("chatsSidebar");
+    const chatWindow = document.getElementById("chatWindow");
+    if (sidebar && chatWindow) {
+      sidebar.classList.add("hidden-mobile");
+      chatWindow.classList.add("active-mobile");
+    }
+  }
+}
+
 // Мобильная навигация
 function setupMobileChat() {
   const backBtn = document.getElementById("backToChatList");

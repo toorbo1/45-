@@ -104,7 +104,160 @@
     padding: 5px 8px;
   }
 }
+/* ========== СЛАЙДЕР - СКРЫТЫЙ СКРОЛЛ ========== */
 
+/* Контейнер слайдеров */
+.sliders-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+  width: 100%;
+}
+
+/* ========== ФИКС СЛАЙДЕРОВ — СКРЫТЫЙ СКРОЛЛ НА ВСЕХ УСТРОЙСТВАХ ========== */
+
+/* Полностью скрываем скролл у обертки слайдера */
+.hero-sliders-wrapper {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.hero-sliders-wrapper::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+/* Убираем возможные лишние отступы */
+.sliders-container {
+  overflow: visible !important;
+}
+
+.hero-sliders {
+  overflow: visible !important;
+}
+/* Карточка слайдера — фиксированная минимальная ширина */
+.slider-card {
+  flex: 0 0 auto;
+  min-width: 280px;
+  width: 280px;
+  background: #0f0f0f;
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+/* Адаптация для мобильных — карточки уже */
+@media (max-width: 768px) {
+  .slider-card {
+    min-width: 240px;
+    width: 240px;
+  }
+}
+
+@media (max-width: 480px) {
+  .slider-card {
+    min-width: 220px;
+    width: 220px;
+  }
+}
+
+/* Кнопки скролла */
+.slider-scroll-btn {
+  width: 42px;
+  height: 42px;
+  background: #111111;
+  border: 1px solid rgba(59,130,246,0.3);
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.slider-scroll-btn:hover {
+  background: var(--accent-primary);
+  transform: scale(1.05);
+}
+
+.slider-scroll-btn:active {
+  transform: scale(0.96);
+}
+
+/* На очень узких экранах скрываем кнопки */
+@media (max-width: 560px) {
+  .slider-scroll-btn {
+    display: none;
+  }
+}
+
+/* Планшеты и выше — показываем кнопки */
+@media (min-width: 561px) {
+  .slider-scroll-btn {
+    display: flex;
+  }
+}
+
+/* Мини-слайдер внутри карточки */
+.mini-slider {
+  width: 100%;
+  background: #0a0a0a;
+}
+
+.mini-slider-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #000;
+}
+
+.mini-slider-images {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+}
+
+.mini-slide-img {
+  width: 100%;
+  height: 100%;
+  flex-shrink: 0;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+/* Точки навигации */
+.mini-slider-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 0 8px;
+  background: rgba(0,0,0,0.5);
+}
+
+.mini-dot {
+  width: 6px;
+  height: 6px;
+  background: #6b7280;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mini-dot.active {
+  width: 22px;
+  background: var(--accent-primary);
+  border-radius: 10px;
+}
 /* ========== КАРТОЧКИ СЛАЙДЕРА (МИНИ-СЛАЙДЕРЫ) ========== */
 
 /* Контейнер слайдеров */
@@ -402,7 +555,7 @@
   width: 100%;
   padding: 14px 16px;
   background: #0a0a0a;
-  border: 1px solid #1a1a1a;
+  border: 1px solid #717070;
   border-radius: 16px;
   color: white;
   font-size: 0.9rem;

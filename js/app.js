@@ -2,7 +2,6 @@
 document.addEventListener('DOMContentLoaded', function() {
   // Инициализация всех модулей
   if (typeof initAuth === 'function') initAuth();
-
   if (typeof loadProducts === 'function') loadProducts();
   if (typeof initAdmin === 'function') initAdmin();
   
@@ -13,15 +12,82 @@ document.addEventListener('DOMContentLoaded', function() {
   const globalSearchInput = document.getElementById('globalSearchInput');
   const mainSearchInput = document.getElementById('searchInput');
   const clearSearchBtn = document.getElementById('clearSearchBtn');
-  // В функции инициализации document.addEventListener('DOMContentLoaded', ...) 
-// ЗАМЕНИТЕ if (typeof initChats === 'function') initChats(); на:
+  
+  // Инициализация чатов
+  if (typeof initChats === 'function') {
+    initChats();
+    setupChatEventListeners();
+  }
+  
+  if (globalSearchInput) {
+    globalSearchInput.addEventListener('input', function(e) {
+      const term = e.target.value;
+      if (mainSearchInput) {
+        mainSearchInput.value = term;
+        if (typeof filterProducts === 'function') filterProducts();
+      }
+      if (clearSearchBtn) {
+        clearSearchBtn.style.display = term.length > 0 ? 'flex' : 'none';
+      }
+    });
+    
+    document.addEventListener('keydown', function(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        globalSearchInput.focus();
+        globalSearchInput.select();
+      }
+    });
+  }
+  
+  if (clearSearchBtn) {
+    clearSearchBtn.addEventListener('click', function() {
+      if (globalSearchInput) {
+        globalSearchInput.value = '';
+        if (mainSearchInput) {
+          mainSearchInput.value = '';
+          if (typeof filterProducts === 'function') filterProducts();
+        }
+        clearSearchBtn.style.display = 'none';
+      }
+    });
+  }
+  
+  // Модальное окно
+  const modalOverlay = document.getElementById("modalOverlay");
+  if (modalOverlay) {
+    modalOverlay.addEventListener("click", function(e) {
+      if (e.target === modalOverlay && typeof closeModal === 'function') {
+        closeModal();
+      }
+    });
+  }
+  
+  // Инициализация табов и товаров
+  initProfileTabs();
+  loadUserProductsInProfile();
+  
+  // Скролл слайдеров
+  const wrapper = document.getElementById('heroSlidersWrapper');
+  const leftBtn = document.getElementById('scrollLeftBtn');
+  const rightBtn = document.getElementById('scrollRightBtn');
+  
+  if (wrapper && leftBtn && rightBtn) {
+    leftBtn.addEventListener('click', function() {
+      wrapper.scrollBy({ left: -300, behavior: 'smooth' });
+    });
+    rightBtn.addEventListener('click', function() {
+      wrapper.scrollBy({ left: 300, behavior: 'smooth' });
+    });
+  }
+  
+  initDesktopNavigation();
+  
+  // Убеждаемся что активна главная страница
+  showPage('home');
+});
 
-if (typeof initChats === 'function') {
-  initChats();
-  setupChatEventListeners();
-}
-
-// ДОБАВЬТЕ ЭТУ ФУНКЦИЮ:
+// Функция настройки событий чата
 function setupChatEventListeners() {
   const sendBtn = document.getElementById("sendChatMsgBtn");
   const msgInput = document.getElementById("chatMessageInput");
@@ -61,115 +127,6 @@ function setupChatEventListeners() {
     });
   }
 }
-  if (globalSearchInput) {
-    globalSearchInput.addEventListener('input', function(e) {
-      const term = e.target.value;
-      if (mainSearchInput) {
-        mainSearchInput.value = term;
-        if (typeof filterProducts === 'function') filterProducts();
-      }
-      if (clearSearchBtn) {
-        clearSearchBtn.style.display = term.length > 0 ? 'flex' : 'none';
-      }
-    });
-    
-    document.addEventListener('keydown', function(e) {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        globalSearchInput.focus();
-        globalSearchInput.select();
-      }
-    });
-  }
-  
-  if (clearSearchBtn) {
-    clearSearchBtn.addEventListener('click', function() {
-      if (globalSearchInput) {
-        globalSearchInput.value = '';
-        if (mainSearchInput) {
-          mainSearchInput.value = '';
-          if (typeof filterProducts === 'function') filterProducts();
-        }
-        clearSearchBtn.style.display = 'none';
-      }
-    });
-  }
-  
-  // Настройка чата
-  const sendChatMsgBtn = document.getElementById("sendChatMsgBtn");
-  const chatMessageInput = document.getElementById("chatMessageInput");
-  const backToListBtn = document.getElementById("backToListBtn");
-  
-  if (sendChatMsgBtn) {
-    sendChatMsgBtn.addEventListener("click", function() {
-      if (typeof sendChatMessage === 'function') sendChatMessage();
-    });
-  }
-  
-  if (chatMessageInput) {
-    chatMessageInput.addEventListener("keypress", function(e) {
-      if (e.key === "Enter" && typeof sendChatMessage === 'function') sendChatMessage();
-    });
-  }
-  
-  if (backToListBtn) {
-    backToListBtn.addEventListener("click", function() {
-      const chatWindow = document.getElementById("chatWindow");
-      if (chatWindow) chatWindow.classList.remove("active-mobile");
-    });
-  }
-  
-  // Кнопка оплаты
-  const amountInput = document.getElementById("amountInput");
-  const payBtn = document.getElementById("payBtnDynamic");
-  
-  if (amountInput && payBtn) {
-    function updatePayButton() {
-      let val = parseFloat(amountInput.value) || 0;
-      let total = Math.round(val * 1.05);
-      const span = payBtn.querySelector('span');
-      if (span) span.innerText = ` Оплатить ${total} ₽`;
-    }
-    amountInput.addEventListener("input", updatePayButton);
-    payBtn.addEventListener("click", function() {
-      let val = parseFloat(amountInput.value) || 0;
-      let total = Math.round(val * 1.05);
-      alert(`✅ Демо-оплата ${total} ₽\n💰 Сумма к оплате: ${total} ₽`);
-    });
-    updatePayButton();
-  }
-  
-  // Модальное окно
-  const modalOverlay = document.getElementById("modalOverlay");
-  if (modalOverlay) {
-    modalOverlay.addEventListener("click", function(e) {
-      if (e.target === modalOverlay && typeof closeModal === 'function') {
-        closeModal();
-      }
-    });
-  }
-  
-  // Инициализация табов и товаров
-  initProfileTabs();
-  loadUserProductsInProfile();
-  
-  // Скролл слайдеров
-  const wrapper = document.getElementById('heroSlidersWrapper');
-  const leftBtn = document.getElementById('scrollLeftBtn');
-  const rightBtn = document.getElementById('scrollRightBtn');
-  
-  if (wrapper && leftBtn && rightBtn) {
-    leftBtn.addEventListener('click', function() {
-      wrapper.scrollBy({ left: -300, behavior: 'smooth' });
-    });
-    rightBtn.addEventListener('click', function() {
-      wrapper.scrollBy({ left: 300, behavior: 'smooth' });
-    });
-  }
-  initDesktopNavigation();
-  // Убеждаемся что активна главная страница
-  showPage('home');
-});
 
 // ЕДИНАЯ ФУНКЦИЯ ПОКАЗА СТРАНИЦЫ
 function showPage(pageId) {
@@ -194,27 +151,45 @@ function showPage(pageId) {
   
   // Управление нижними меню
   const mainBottomNav = document.getElementById('bottomNav');
-  const profileBottomNav = document.querySelector('.profile-bottom-nav');
   
-if (pageId === 'profile') {
-  if (mainBottomNav) mainBottomNav.style.display = 'none';
-  if (profileBottomNav) profileBottomNav.style.display = 'flex';
-  if (typeof loadUserProductsInProfile === 'function') loadUserProductsInProfile();
-  if (typeof updateProfileUI === 'function') updateProfileUI();
-} else if (pageId === 'products-manage') {
-  if (mainBottomNav) mainBottomNav.style.display = 'flex';
-  if (profileBottomNav) profileBottomNav.style.display = 'none';
-  if (typeof renderUserProductsList === 'function') renderUserProductsList();
-} else {
-  if (mainBottomNav) mainBottomNav.style.display = 'flex';
-  if (profileBottomNav) profileBottomNav.style.display = 'none';
-}
+  if (pageId === 'profile') {
+    if (mainBottomNav) mainBottomNav.style.display = 'flex';
+    if (typeof loadUserProductsInProfile === 'function') loadUserProductsInProfile();
+    if (typeof updateProfileUI === 'function') updateProfileUI();
+    if (typeof updateNewProfileStats === 'function' && window.userProfile) {
+      updateNewProfileStats(window.userProfile);
+    }
+  } else if (pageId === 'products-manage') {
+    if (mainBottomNav) mainBottomNav.style.display = 'flex';
+    if (typeof renderUserProductsList === 'function') renderUserProductsList();
+  } else if (pageId === 'chat') {
+    if (mainBottomNav) mainBottomNav.style.display = 'flex';
+    // Обновляем список диалогов при открытии чата
+    if (typeof renderDialogsList === 'function') renderDialogsList();
+  } else {
+    if (mainBottomNav) mainBottomNav.style.display = 'flex';
+  }
+  
   // Обновляем активные кнопки
   updateActiveNavButtons(pageId);
   updateDesktopNavButtons(pageId);
+  
+  // Скрываем/показываем футер
+  updateFooterVisibility();
 }
 
- function updateDesktopNavButtons(pageId) {
+function updateActiveNavButtons(pageId) {
+  const navBtns = document.querySelectorAll('.nav-btn');
+  navBtns.forEach(btn => {
+    if (btn.getAttribute('data-nav') === pageId) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+}
+
+function updateDesktopNavButtons(pageId) {
   const navLinks = document.querySelectorAll('.nav-link');
   navLinks.forEach(link => {
     if (link.getAttribute('data-nav') === pageId) {
@@ -223,35 +198,20 @@ if (pageId === 'profile') {
       link.classList.remove('active');
     }
   });
-  }
+}
+
+// Показывать футер на всех страницах, кроме детальной
+function updateFooterVisibility() {
+  const footer = document.querySelector('.site-footer');
+  const detailPage = document.getElementById('detailPage');
   
-// Нижнее меню для профиля (только на мобильных)
-const profileBottomNav = document.querySelector('.profile-bottom-nav');
-if (profileBottomNav) {
-  // Скрываем поиск и Steam кнопки, оставляем только Продать и Профиль
-  const profileNavBtns = profileBottomNav.querySelectorAll('.profile-nav-btn');
-  profileNavBtns.forEach(btn => {
-    const text = btn.querySelector('span')?.innerText || '';
-    if (text === 'Поиск' || text === 'Steam') {
-      btn.style.display = 'none';
-    }
-  });
-  
-  // Добавляем кнопку Добавить задание если нужно
-  const sellBtn = Array.from(profileNavBtns).find(btn => btn.querySelector('span')?.innerText === 'Продать');
-  if (sellBtn) {
-    sellBtn.innerHTML = '<i class="fas fa-tasks"></i><span>Задания</span>';
-  }
-  
-  const profileBtns = profileBottomNav.querySelectorAll('.profile-nav-btn');
-  profileBtns.forEach(btn => {
-    const onclick = btn.getAttribute('onclick') || '';
-    if (onclick.includes(`'${pageId}'`)) {
-      btn.classList.add('active');
+  if (footer) {
+    if (detailPage && detailPage.classList.contains('active')) {
+      footer.style.display = 'none';
     } else {
-      btn.classList.remove('active');
+      footer.style.display = 'block';
     }
-  });
+  }
 }
 
 function moveWave(btn) {
@@ -269,9 +229,9 @@ function initNavigation() {
   const bottomNav = document.getElementById('bottomNav');
   if (!bottomNav) return;
   
-  const navBtns = bottomNav.querySelectorAll('.nav-btn:not(.plus-btn)');
-  const activeBtn = bottomNav.querySelector('.nav-btn.active');
-  if (activeBtn) moveWave(activeBtn);
+  const navBtns = bottomNav.querySelectorAll('.nav-item:not(.plus-btn)');
+  const activeBtn = bottomNav.querySelector('.nav-item.active');
+  if (activeBtn && typeof moveWave === 'function') moveWave(activeBtn);
   
   navBtns.forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -285,10 +245,11 @@ function initNavigation() {
   });
   
   window.addEventListener('resize', () => {
-    const activeBtn = bottomNav.querySelector('.nav-btn.active');
-    if (activeBtn) moveWave(activeBtn);
+    const activeBtn = bottomNav.querySelector('.nav-item.active');
+    if (activeBtn && typeof moveWave === 'function') moveWave(activeBtn);
   });
 }
+
 function initDesktopNavigation() {
   const navLinks = document.querySelectorAll('.nav-link');
   navLinks.forEach(link => {
@@ -299,6 +260,7 @@ function initDesktopNavigation() {
     });
   });
 }
+
 // Глобальная навигация
 function navigate(pageId) {
   showPage(pageId);
@@ -315,6 +277,13 @@ function scrollGames(direction) {
   container.scrollLeft += direction === 'left' ? -scrollAmount : scrollAmount;
 }
 
+function scrollApps(direction) {
+  const container = document.getElementById('appsScrollContainer');
+  if (!container) return;
+  const scrollAmount = 250;
+  container.scrollLeft += direction === 'left' ? -scrollAmount : scrollAmount;
+}
+
 function initProfileTabs() {
   const tabBtns = document.querySelectorAll('.profile-tab-btn');
   tabBtns.forEach(btn => {
@@ -322,8 +291,11 @@ function initProfileTabs() {
       const tab = this.getAttribute('data-tab');
       tabBtns.forEach(b => b.classList.remove('active'));
       this.classList.add('active');
-      if (tab === 'active') loadActiveProducts();
-      else if (tab === 'completed') loadCompletedProducts();
+      if (tab === 'active') {
+        if (typeof loadActiveProducts === 'function') loadActiveProducts();
+      } else if (tab === 'completed') {
+        if (typeof loadCompletedProducts === 'function') loadCompletedProducts();
+      }
     });
   });
 }
@@ -331,8 +303,9 @@ function initProfileTabs() {
 function loadActiveProducts() {
   const container = document.getElementById('profileProductsList');
   if (!container) return;
+  const currentUser = localStorage.getItem('apex_user') || 'Гость';
   const products = JSON.parse(localStorage.getItem('apex_products') || '[]');
-  const userProducts = products.filter(p => p.seller === window.currentUser);
+  const userProducts = products.filter(p => p.seller === currentUser);
   
   if (userProducts.length === 0) {
     container.innerHTML = `
@@ -346,7 +319,7 @@ function loadActiveProducts() {
   }
   
   container.innerHTML = userProducts.map(product => `
-    <div class="profile-product-item" onclick="window.openProductDetailById('${product.id}')">
+    <div class="profile-product-item" onclick="window.openProductDetailById('${product.id}')" style="cursor: pointer; position: relative;">
       <img class="profile-product-img" src="${escapeHtml(product.imageUrl || 'https://picsum.photos/id/42/50/50')}" alt="${escapeHtml(product.title)}">
       <div class="profile-product-info">
         <div class="profile-product-title">${escapeHtml(product.title)}</div>
@@ -371,8 +344,16 @@ function loadCompletedProducts() {
 function loadUserProductsInProfile() {
   const container = document.getElementById('profileProductsList');
   if (!container) return;
+  const currentUser = localStorage.getItem('apex_user') || 'Гость';
   const products = JSON.parse(localStorage.getItem('apex_products') || '[]');
-  const userProducts = products.filter(p => p.seller === window.currentUser);
+  const userProducts = products.filter(p => p.seller === currentUser);
+  
+  // Обновляем счетчик товаров
+  if (window.userProfile) {
+    window.userProfile.productsCount = userProducts.length;
+    localStorage.setItem("apex_profile", JSON.stringify(window.userProfile));
+    if (typeof updateNewProfileStats === 'function') updateNewProfileStats(window.userProfile);
+  }
   
   if (userProducts.length === 0) {
     container.innerHTML = `
@@ -386,7 +367,7 @@ function loadUserProductsInProfile() {
   }
   
   container.innerHTML = userProducts.map(product => `
-    <div class="profile-product-item" onclick="window.openProductDetailById('${product.id}')">
+    <div class="profile-product-item" style="position: relative; cursor: pointer;" onclick="window.openProductDetailById('${product.id}')">
       <img class="profile-product-img" src="${escapeHtml(product.imageUrl || 'https://picsum.photos/id/42/50/50')}" alt="${escapeHtml(product.title)}">
       <div class="profile-product-info">
         <div class="profile-product-title">${escapeHtml(product.title)}</div>
@@ -408,11 +389,16 @@ function escapeHtml(str) {
 }
 
 function updateUserProductsCount() {
+  const currentUser = localStorage.getItem('apex_user') || 'Гость';
   const products = JSON.parse(localStorage.getItem('apex_products') || '[]');
-  const userProducts = products.filter(p => p.seller === window.currentUser);
+  const userProducts = products.filter(p => p.seller === currentUser);
   const count = userProducts.length;
   const productsCountEl = document.getElementById("profileProductsCount");
   if (productsCountEl) productsCountEl.innerText = count;
+  if (window.userProfile) {
+    window.userProfile.productsCount = count;
+    localStorage.setItem("apex_profile", JSON.stringify(window.userProfile));
+  }
 }
 
 function openKeywordPage(keyword) {
@@ -427,16 +413,18 @@ function openKeywordPage(keyword) {
   
   if (container) {
     if (filteredProducts.length === 0) {
-      container.innerHTML = "<div style='text-align:center;'>Нет товаров</div>";
+      container.innerHTML = "<div class='empty-state'><i class='fas fa-box-open'></i><p>Нет товаров по этой категории</p></div>";
     } else {
       container.innerHTML = filteredProducts.map(prod => `
         <div class="product-card" onclick="window.openProductDetailById('${prod.id}')">
-          <div class="product-img-wrapper">
-            ${prod.imageUrl ? `<img src="${escapeHtml(prod.imageUrl)}" alt="${escapeHtml(prod.title)}">` : `<i class="fas fa-tag"></i>`}
+          <div class="card-image">
+            <img src="${escapeHtml(prod.imageUrl || 'https://picsum.photos/id/42/400/300')}" alt="${escapeHtml(prod.title)}" loading="lazy" onerror="this.src='https://picsum.photos/id/42/400/300'">
           </div>
-          <div class="product-body">
-            <div class="product-price">${escapeHtml(prod.price)}</div>
-            <div class="product-title">${escapeHtml(prod.title)}</div>
+          <div class="card-body">
+            <div class="price-wrapper">
+              <span class="current-price">${escapeHtml(prod.price)}</span>
+            </div>
+            <h3 class="product-title">${escapeHtml(prod.title)}</h3>
           </div>
         </div>
       `).join('');
@@ -450,99 +438,40 @@ function openKeywordPageByBlock(blockId) {
   const block = gameBlocks.find(b => b.id === blockId);
   if (block) openKeywordPage(block.name);
 }
-// Показывать футер на всех страницах, кроме детальной
-function updateFooterVisibility() {
-  const footer = document.querySelector('.site-footer');
-  const detailPage = document.getElementById('detailPage');
-  
-  if (footer) {
-    if (detailPage && detailPage.classList.contains('active')) {
-      footer.style.display = 'none';
-    } else {
-      footer.style.display = 'block';
-    }
-  }
-}
 
-// Вызывать при смене страницы
-const originalShowPage = window.showPage;
-window.showPage = function(pageId) {
-  if (originalShowPage) originalShowPage(pageId);
-  setTimeout(updateFooterVisibility, 50);
-};
-
-// Также при открытии/закрытии детальной страницы
-function updateFooterOnDetail() {
-  const footer = document.querySelector('.site-footer');
-  const detailPage = document.getElementById('detailPage');
-  if (footer && detailPage) {
-    footer.style.display = detailPage.classList.contains('active') ? 'none' : 'block';
-  }
-}
-
-// Добавить вызов в openProductDetailById и closeDetail
-function showInfo(type) {
-  const messages = {
-    about: '📖 О нас\n\nПлейнексис — цифровой маркетплейс',
-    privacy: '🔒 Политика конфиденциальности',
-    info: 'ℹ️ Информация о проекте',
-    discounts: '🏷️ Скидки и акции',
-    interesting: '✨ Интересное'
-  };
-  alert(messages[type] || 'Информация');
-}
-// Добавьте функцию скролла для приложений
-function scrollApps(direction) {
-  const container = document.getElementById('appsScrollContainer');
-  if (!container) return;
-  const scrollAmount = 250;
-  container.scrollLeft += direction === 'left' ? -scrollAmount : scrollAmount;
-}
-
-// В products.js - добавьте или замените функцию
 function openKeywordPageByAppBlock(blockId) {
   const appBlocks = JSON.parse(localStorage.getItem("apex_app_blocks") || "[]");
   const block = appBlocks.find(b => b.id === blockId);
-  
-  if (!block) {
-    console.error("Блок приложения не найден", blockId);
-    return;
-  }
-  
-  // Проверяем привязку к ключевому слову
-  if (block.keywordId && block.keywordId !== "") {
-    const keywords = JSON.parse(localStorage.getItem("apex_keywords") || "[]");
-    const keyword = keywords.find(k => k.id === block.keywordId);
-    if (keyword) {
-      openKeywordPage(keyword.name);
-      return;
-    }
-  }
-  
-  openKeywordPage(block.name);
+  if (block) openKeywordPage(block.name);
 }
-window.openKeywordPageByAppBlock = openKeywordPageByAppBlock;
 
-// Экспортируйте функции
-window.scrollApps = scrollApps;
-window.openKeywordPageByAppBlock = openKeywordPageByAppBlock;
+function showInfo(type) {
+  const messages = {
+    about: '📖 О нас\n\nПлейнексис — цифровой маркетплейс для покупки и продажи подписок, цифровых товаров и услуг. Мы гарантируем безопасность каждой сделки и мгновенную выдачу товаров.',
+    privacy: '🔒 Политика конфиденциальности\n\nМы не передаём ваши данные третьим лицам. Все платежи защищены.',
+    info: 'ℹ️ Информация о проекте\n\nВерсия: 2.0\nРазработчик: Плейнексис Team',
+    discounts: '🏷️ Скидки и акции\n\nПодпишитесь на наш Telegram, чтобы первыми узнавать о скидках!',
+    interesting: '✨ Интересное\n\nСкоро: программа лояльности, кешбэк и реферальная система!',
+    contacts: '📞 Контакты\n\nПоддержка: @pleinexis_support\nEmail: support@pleinexis.ru'
+  };
+  alert(messages[type] || 'Информация');
+}
+
 // Экспорт
 window.navigate = navigate;
 window.goBack = goBack;
 window.scrollGames = scrollGames;
+window.scrollApps = scrollApps;
 window.showPage = showPage;
 window.openKeywordPage = openKeywordPage;
 window.openKeywordPageByBlock = openKeywordPageByBlock;
+window.openKeywordPageByAppBlock = openKeywordPageByAppBlock;
 window.updateUserProductsCount = updateUserProductsCount;
 window.loadUserProductsInProfile = loadUserProductsInProfile;
+window.loadActiveProducts = loadActiveProducts;
+window.loadCompletedProducts = loadCompletedProducts;
 window.showInfo = showInfo;
 
 setTimeout(function() {
   updateUserProductsCount();
-  if (typeof initGamesScroll === 'function') initGamesScroll();
 }, 100);
-
-// Инициализация blob навигации
-if (typeof initBlobNavigation === 'function') {
-    initBlobNavigation();
-}
