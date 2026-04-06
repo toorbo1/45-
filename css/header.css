@@ -279,3 +279,16 @@
   color: white;
   transform: scale(1.02);
 }
+
+.header-logo {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+  .header-logo {
+    height: 32px;
+  }
+}
