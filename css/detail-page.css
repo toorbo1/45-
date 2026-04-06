@@ -50,13 +50,13 @@
   cursor: pointer;
 }
 
-/* Контент детальной страницы — такие же отступы как у .page */
+/* Контент детальной страницы — уменьшенные отступы */
 .detail-page #detailContent {
   padding: 20px;
   padding-bottom: 40px;
 }
 
-/* На мобильных отступы как у .page */
+/* На мобильных минимальные отступы */
 @media (max-width: 767px) {
   .detail-page #detailContent {
     padding: 20px 12px 40px;
@@ -65,19 +65,19 @@
 
 @media (min-width: 768px) and (max-width: 1023px) {
   .detail-page #detailContent {
-    padding: 20px 40px 40px;
+    padding: 20px 24px 40px;
   }
 }
 
 @media (min-width: 1024px) and (max-width: 1279px) {
   .detail-page #detailContent {
-    padding: 20px 80px 40px;
+    padding: 20px 40px 40px;
   }
 }
 
 @media (min-width: 1280px) {
   .detail-page #detailContent {
-    padding: 20px 150px 40px;
+    padding: 20px 80px 40px;
   }
 }
 
@@ -177,30 +177,7 @@
   box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
 }
 
-.chat-button-inline {
-  width: 100%;
-  padding: 14px 20px;
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 40px;
-  color: var(--text-main);
-  font-weight: 600;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-
-.chat-button-inline:hover {
-  background: rgba(59, 130, 246, 0.25);
-  border-color: rgba(59, 130, 246, 0.5);
-  transform: translateY(-2px);
-}
-
-/* KPP блок */
+/* KPP блок - только номер */
 .kpp-block {
   background: var(--bg-elevated);
   border-radius: 16px;
@@ -217,10 +194,18 @@
   font-family: monospace;
 }
 
-.kpp-desc {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  margin-top: 4px;
+/* Блок описания товара (сразу после KPP) */
+.seller-description-block {
+  background: var(--bg-elevated);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 20px;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: #ffffff;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 
 /* Информация о продавце */
@@ -356,15 +341,18 @@
   display: block;
 }
 
-/* Описание товара */
+/* Описание товара в табе — белый цвет, сохранение пробелов и переносов */
 .seller-contact-text {
   background: var(--bg-elevated);
   border-radius: 16px;
   padding: 16px;
   margin-bottom: 20px;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   line-height: 1.5;
-  color: var(--text-muted);
+  color: #ffffff;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 
 /* Отзывы */
@@ -455,13 +443,12 @@
     flex-direction: row;
   }
   
-  .buy-button-inline,
-  .chat-button-inline {
+  .buy-button-inline {
     flex: 1;
   }
 }
 
-/* === НОВЫЙ БЛОК: ФОТО СЛЕВА (БОЛЬШОЕ), ИНФО СПРАВА === */
+/* === БЛОК: ФОТО СЛЕВА (БОЛЬШОЕ), ИНФО СПРАВА === */
 .detail-top-row {
   display: flex;
   gap: 24px;
@@ -472,8 +459,8 @@
 /* Фото товара — 4:3, БОЛЬШОЕ, слева */
 .detail-image-col {
   flex: 2;
-  min-width: 580px;
-  max-width: 700px;
+  min-width: 280px;
+  max-width: 500px;
 }
 
 .product-detail-image {
@@ -500,10 +487,11 @@
   
   .detail-image-col {
     max-width: 100%;
+    min-width: auto;
   }
   
   .product-detail-image {
-    max-width: 200px;
+    max-width: 280px;
     margin: 0 auto;
   }
   
@@ -518,4 +506,12 @@
   .product-detail-price {
     font-size: 1.4rem;
   }
+}
+
+/* Для очень длинных слов в описании */
+.seller-contact-text br,
+.seller-description-block br {
+  display: block;
+  content: "";
+  margin: 4px 0;
 }

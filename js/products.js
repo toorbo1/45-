@@ -134,29 +134,6 @@ function renderProductGrid(products) {
   container.innerHTML = html;
   updateProductCount(products.length);
 }
-// Функция для исправления изображений
-function fixProductImages() {
-  const images = document.querySelectorAll('.card-image img');
-  images.forEach(img => {
-    if (!img.complete) {
-      img.onload = function() {
-        const wrapper = this.closest('.card-image');
-        if (wrapper) {
-          wrapper.style.minHeight = 'auto';
-        }
-      };
-    }
-    // Принудительно применяем стили
-    img.style.position = 'absolute';
-    img.style.top = '50%';
-    img.style.left = '50%';
-    img.style.transform = 'translate(-50%, -50%)';
-    img.style.width = '100%';
-    img.style.height = '100%';
-    img.style.objectFit = 'cover';
-    img.style.objectPosition = 'center';
-  });
-}
 
 function updateProductCount(count) {
   const span = document.getElementById("productCountStat");
@@ -202,10 +179,10 @@ function loadProducts() {
     if (needSave) localStorage.setItem("apex_products", JSON.stringify(productsArray));
   } else {
     productsArray = [
-      { id: crypto.randomUUID?.() || '1', title: "Активная подписка | Турция", price: "0₺", seller: "Zubiko1337", rating: 5.0, sales: 24678, fullDesc: "Активный пользователь | Турция. Однократно актуальный бонус. Моментальная выдача. Гарантия качества.", positive: "98%", responseTime: "отвечает за 5 мин", imageUrl: "https://picsum.photos/id/104/400/300", keyword: "Discord", type: "Nitro" },
-      { id: crypto.randomUUID?.() || '2', title: "1000 Wild Cores", price: "668 ₽", seller: "GameSeller", rating: 4.9, sales: 12500, fullDesc: "Мгновенная доставка на аккаунт. Моментальная выдача. Гарантия качества.", positive: "97%", responseTime: "отвечает за 2 мин", imageUrl: "https://picsum.photos/id/26/400/300", keyword: "Steam", type: "Premium" },
-      { id: crypto.randomUUID?.() || '3', title: "Premium Access 30д", price: "450 ₽", seller: "ApexStore", rating: 5.0, sales: 8900, fullDesc: "Доступ ко всем функциям на 30 дней. Моментальная выдача. Гарантия качества.", positive: "99%", responseTime: "отвечает за 1 мин", imageUrl: "https://picsum.photos/id/0/400/300", keyword: "Spotify", type: "Premium" },
-      { id: crypto.randomUUID?.() || '4', title: "CS2 Prime Account", price: "1200 ₽", seller: "TopAcc", rating: 4.8, sales: 3400, fullDesc: "Готовый аккаунт с Prime статусом. Моментальная выдача. Гарантия качества.", positive: "95%", responseTime: "отвечает за 3 мин", imageUrl: "https://picsum.photos/id/155/400/300", keyword: "Steam", type: "Prime" }
+      { id: crypto.randomUUID?.() || '1', title: "Активная подписка | Турция", price: "0₺", seller: "Zubiko1337", rating: 5.0, sales: 24678, fullDesc: "Активный пользователь | Турция. Однократно актуальный бонус.\n\nМоментальная выдача. Гарантия качества.", positive: "98%", responseTime: "отвечает за 5 мин", imageUrl: "https://picsum.photos/id/104/400/300", keyword: "Discord", type: "Nitro" },
+      { id: crypto.randomUUID?.() || '2', title: "1000 Wild Cores", price: "668 ₽", seller: "GameSeller", rating: 4.9, sales: 12500, fullDesc: "Мгновенная доставка на аккаунт.\n\nМоментальная выдача. Гарантия качества.", positive: "97%", responseTime: "отвечает за 2 мин", imageUrl: "https://picsum.photos/id/26/400/300", keyword: "Steam", type: "Premium" },
+      { id: crypto.randomUUID?.() || '3', title: "Premium Access 30д", price: "450 ₽", seller: "ApexStore", rating: 5.0, sales: 8900, fullDesc: "Доступ ко всем функциям на 30 дней.\n\nМоментальная выдача. Гарантия качества.", positive: "99%", responseTime: "отвечает за 1 мин", imageUrl: "https://picsum.photos/id/0/400/300", keyword: "Spotify", type: "Premium" },
+      { id: crypto.randomUUID?.() || '4', title: "CS2 Prime Account", price: "1200 ₽", seller: "TopAcc", rating: 4.8, sales: 3400, fullDesc: "Готовый аккаунт с Prime статусом.\n\nМоментальная выдача. Гарантия качества.", positive: "95%", responseTime: "отвечает за 3 мин", imageUrl: "https://picsum.photos/id/155/400/300", keyword: "Steam", type: "Prime" }
     ];
     localStorage.setItem("apex_products", JSON.stringify(productsArray));
   }
@@ -224,6 +201,13 @@ function openProductDetailById(productId) {
   if (!detailContainer) return;
 
   const kppNumber = Math.floor(10000 + Math.random() * 90000);
+  
+  // Форматируем описание с сохранением переносов строк
+  let formattedDescription = escapeHtml(p.fullDesc || "");
+  // Заменяем переносы строк на <br>
+  formattedDescription = formattedDescription.replace(/\n/g, '<br>');
+  // Сохраняем пробелы
+  formattedDescription = formattedDescription.replace(/  /g, ' &nbsp;');
   
   const reviewsHtml = `
     <div class="reviews-list">
@@ -269,16 +253,17 @@ function openProductDetailById(productId) {
           <button class="buy-button-inline" id="buyProductNowBtn">
             <i class="fas fa-shopping-cart"></i> Купить
           </button>
-          <button class="chat-button-inline" id="chatWithSellerBtn">
-            <i class="fab fa-telegram"></i> Написать продавцу
-          </button>
         </div>
       </div>
     </div>
 
     <div class="kpp-block">
       <div class="kpp-number">${kppNumber}</div>
-      <div class="kpp-desc">Моментальная выдача. Гарантия качества.</div>
+    </div>
+
+    <!-- ОПИСАНИЕ ТОВАРА СРАЗУ ПОСЛЕ KPP -->
+    <div class="seller-description-block">
+      ${formattedDescription}
     </div>
 
     <div class="seller-info-block">
@@ -325,8 +310,7 @@ function openProductDetailById(productId) {
     
     <div class="tab-pane active" id="tab-about">
       <div class="seller-contact-text">
-        <p>${escapeHtml(p.fullDesc)}</p>
-        <p>Отвечаю быстро и всегда на связи. Если по каким-то причинам вы не можете самостоятельно активировать подписку — я помогу и всё сделаю за вас.</p>
+        ${formattedDescription}
       </div>
     </div>
     
@@ -358,17 +342,6 @@ function openProductDetailById(productId) {
     buyBtn.onclick = () => {
       alert(`✅ Заказ оформлен!\nТовар: ${p.title}\nСумма: ${p.price}\nПродавец свяжется с вами в чате.`);
       closeDetail();
-    };
-  }
-
-  const chatBtn = document.getElementById('chatWithSellerBtn');
-  if (chatBtn) {
-    chatBtn.onclick = () => {
-      closeDetail();
-      navigate('chat');
-      setTimeout(() => {
-        alert(`💬 Чат с продавцом ${p.seller} будет открыт`);
-      }, 100);
     };
   }
 
@@ -420,7 +393,8 @@ function createNewProduct() {
   }
   
   const newId = crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random();
-  const fullDescription = description || "Новый товар от пользователя";
+  // Сохраняем описание с переносами строк и добавляем гарантию в конце
+  const fullDescription = (description || "Новый товар от пользователя") + "\n\nМоментальная выдача. Гарантия качества.";
   
   productsArray.unshift({ 
     id: newId,
@@ -429,7 +403,7 @@ function createNewProduct() {
     seller: window.currentUser || "User", 
     rating: 5.0, 
     sales: 0, 
-    fullDesc: `${fullDescription} Моментальная выдача. Гарантия качества.`,
+    fullDesc: fullDescription,
     positive: "100%",
     responseTime: "отвечает быстро",
     imageUrl: imageUrl || "https://picsum.photos/id/42/400/300",
@@ -614,21 +588,18 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  // Запускаем при загрузке
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', applyImageFix);
   } else {
     applyImageFix();
   }
   
-  // Запускаем при изменении размера окна
   let resizeTimer;
   window.addEventListener('resize', function() {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(applyImageFix, 150);
   });
   
-  // Запускаем при динамической загрузке товаров
   const observer = new MutationObserver(function() {
     applyImageFix();
   });

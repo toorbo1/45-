@@ -15,10 +15,12 @@ function showCreateProductForm() {
     }
   }
 }
+
 function autoResizeTextarea(textarea) {
   textarea.style.height = 'auto';
   textarea.style.height = textarea.scrollHeight + 'px';
 }
+
 function loadKeywordsForProductSelect() {
   const select = document.getElementById('productKeywordSelect');
   if (!select) return;
@@ -171,13 +173,16 @@ function createNewProduct() {
     'lifetime': 'Бессрочная / Lifetime'
   };
   
+  // Формируем полное описание с сохранением переносов строк и пробелов
   let fullDescription = description;
+  
+  // Добавляем инструкцию если есть
   if (instructions) {
     fullDescription += '\n\n📖 Инструкция по активации:\n' + instructions;
   }
-  fullDescription += '\n\n✅ Моментальная выдача после оплаты';
-  fullDescription += '\n🔒 Гарантия качества';
-  fullDescription += '\n💬 Круглосуточная поддержка';
+  
+  // Добавляем гарантию в конце (это добавится в описание товара)
+  fullDescription += '\n\nМоментальная выдача. Гарантия качества.';
   
   let finalPrice = price;
   let discountText = discount || null;
@@ -322,12 +327,21 @@ function editUserProduct(productId) {
   document.getElementById('productDiscount').value = product.discount || '';
   document.getElementById('productContact').value = product.contact || '';
   
+  // Извлекаем описание без добавленных в конце строк
   let desc = product.fullDesc || '';
-  desc = desc.replace(/\n\n✅ Моментальная выдача после оплаты.*$/, '');
-  desc = desc.replace(/\n🔒 Гарантия качества.*$/, '');
-  desc = desc.replace(/\n💬 Круглосуточная поддержка.*$/, '');
+  desc = desc.replace(/\n\nМоментальная выдача\. Гарантия качества\.$/, '');
   desc = desc.replace(/\n\n📖 Инструкция по активации:\n/, '\n\n');
   document.getElementById('productDescription').value = desc.trim();
+  
+  // Извлекаем инструкцию если есть
+  let instr = '';
+  if (product.fullDesc && product.fullDesc.includes('📖 Инструкция по активации:')) {
+    const parts = product.fullDesc.split('\n\n📖 Инструкция по активации:\n');
+    if (parts.length > 1) {
+      instr = parts[1].replace(/\n\nМоментальная выдача\. Гарантия качества\.$/, '');
+    }
+  }
+  document.getElementById('productInstructions').value = instr;
   
   if (product.type) {
     if (product.type.includes('Ежемесячная')) document.querySelector('input[name="productType"][value="monthly"]').checked = true;
@@ -348,24 +362,24 @@ function editUserProduct(productId) {
   
   document.getElementById('productTitleCounter').innerText = (product.title?.length || 0) + '/100';
   document.getElementById('productDescCounter').innerText = (desc.length || 0) + '/1000';
-  // Авторасширение textarea при редактировании
-const descArea = document.getElementById('productDescription');
-if (descArea) {
-  setTimeout(() => {
-    descArea.style.height = 'auto';
-    descArea.style.height = descArea.scrollHeight + 'px';
-  }, 50);
-}
-
-const instrArea = document.getElementById('productInstructions');
-if (instrArea && instrArea.value) {
-  setTimeout(() => {
-    instrArea.style.height = 'auto';
-    instrArea.style.height = instrArea.scrollHeight + 'px';
-  }, 50);
-}
-  showCreateProductForm();
   
+  const descArea = document.getElementById('productDescription');
+  if (descArea) {
+    setTimeout(() => {
+      descArea.style.height = 'auto';
+      descArea.style.height = descArea.scrollHeight + 'px';
+    }, 50);
+  }
+  
+  const instrArea = document.getElementById('productInstructions');
+  if (instrArea && instrArea.value) {
+    setTimeout(() => {
+      instrArea.style.height = 'auto';
+      instrArea.style.height = instrArea.scrollHeight + 'px';
+    }, 50);
+  }
+  
+  showCreateProductForm();
 }
 
 function deleteUserProduct(productId) {
@@ -452,6 +466,9 @@ document.addEventListener('DOMContentLoaded', function() {
       const counter = document.getElementById('productDescCounter');
       if (counter) counter.innerText = `${len}/1000`;
       if (len > 1000) this.value = this.value.slice(0, 1000);
+      // Авто-расширение textarea
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 300) + 'px';
     });
   }
   
