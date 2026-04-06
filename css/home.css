@@ -115,7 +115,139 @@
   margin-bottom: 28px;
   width: 100%;
 }
+/* ========== КАСТОМНЫЙ СКРОЛЛБАР - ТЁМНЫЙ МИНИМАЛИСТИЧНЫЙ ========== */
 
+/* Для Webkit браузеров (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f172a;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 10px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Для Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #1e293b #0f172a;
+}
+
+/* Для Internet Explorer и Edge (legacy) */
+body {
+  -ms-overflow-style: none;
+}
+
+/* Специфичные стили для области сообщений чата (для особого контроля) */
+.chat-messages-area::-webkit-scrollbar {
+  width: 4px;
+}
+
+.chat-messages-area::-webkit-scrollbar-track {
+  background: #0f172a;
+  border-radius: 10px;
+}
+
+.chat-messages-area::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 10px;
+}
+
+.chat-messages-area::-webkit-scrollbar-thumb:hover {
+  background: #3b82f6;
+}
+
+/* Для списка диалогов */
+.dialogs-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.dialogs-list::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+.dialogs-list::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 10px;
+}
+
+.dialogs-list::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Для списка товаров в админке */
+.admin-products-list::-webkit-scrollbar,
+.games-blocks-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.admin-products-list::-webkit-scrollbar-track,
+.games-blocks-list::-webkit-scrollbar-track {
+  background: #0f172a;
+  border-radius: 10px;
+}
+
+.admin-products-list::-webkit-scrollbar-thumb,
+.games-blocks-list::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 10px;
+}
+
+/* Для общей прокрутки страницы (если нужно) */
+html::-webkit-scrollbar {
+  width: 8px;
+}
+
+html::-webkit-scrollbar-track {
+  background: #050505;
+}
+
+html::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 10px;
+}
+
+html::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Скрываем стандартные стрелки */
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+/* Убираем стандартный белый скролл на всех элементах */
+* {
+  scrollbar-width: thin;
+}
+
+/* Для Safari - дополнительная стилизация */
+@media not all and (min-resolution:.001dpcm) {
+  @supports (-webkit-appearance:none) {
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 10px;
+    }
+  }
+}
 /* ========== ФИКС СЛАЙДЕРОВ — СКРЫТЫЙ СКРОЛЛ НА ВСЕХ УСТРОЙСТВАХ ========== */
 
 /* Полностью скрываем скролл у обертки слайдера */

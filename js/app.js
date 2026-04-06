@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
   showPage('home');
 });
 
-// Функция настройки событий чата
+// В функции setupChatEventListeners, добавьте/обновите:
 function setupChatEventListeners() {
   const sendBtn = document.getElementById("sendChatMsgBtn");
   const msgInput = document.getElementById("chatMessageInput");
@@ -116,13 +116,15 @@ function setupChatEventListeners() {
     });
   }
   
+  // Обработчик кнопки "Назад" - теперь использует closeChatOnMobile
   if (backBtn) {
-    backBtn.addEventListener("click", () => {
-      const sidebar = document.getElementById("chatsSidebar");
-      const chatWindow = document.getElementById("chatWindow");
-      if (sidebar && chatWindow) {
-        sidebar.classList.remove("hidden-mobile");
-        chatWindow.classList.remove("active-mobile");
+    const newBackBtn = backBtn.cloneNode(true);
+    backBtn.parentNode.replaceChild(newBackBtn, backBtn);
+    
+    newBackBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (typeof closeChatOnMobile === 'function') {
+        closeChatOnMobile();
       }
     });
   }
@@ -162,13 +164,46 @@ function showPage(pageId) {
   } else if (pageId === 'products-manage') {
     if (mainBottomNav) mainBottomNav.style.display = 'flex';
     if (typeof renderUserProductsList === 'function') renderUserProductsList();
-  } else if (pageId === 'chat') {
+  } // В функции showPage найдите блок else if (pageId === 'chat') и замените на:
+
+else if (pageId === 'chat') {
     if (mainBottomNav) mainBottomNav.style.display = 'flex';
-    // Обновляем список диалогов при открытии чата
-    if (typeof renderDialogsList === 'function') renderDialogsList();
-  } else {
-    if (mainBottomNav) mainBottomNav.style.display = 'flex';
-  }
+    
+    // ПРИНУДИТЕЛЬНО ПОКАЗЫВАЕМ СПИСОК ЧАТОВ
+    console.log('OPENING CHAT PAGE');
+    
+    // 1. Скрываем окно чата
+    const chatWindow = document.getElementById("chatWindow");
+    if (chatWindow) {
+        chatWindow.style.display = "none";
+    }
+    
+    // 2. Показываем сайдбар со списком
+    const sidebar = document.getElementById("chatsSidebar");
+    if (sidebar) {
+        sidebar.style.display = "flex";
+    }
+    
+    // 3. ПРИНУДИТЕЛЬНО ВЫЗЫВАЕМ ОТОБРАЖЕНИЕ СПИСКА
+    if (typeof renderDialogsList === 'function') {
+        console.log('Calling renderDialogsList');
+        renderDialogsList();
+    } else {
+        console.error('renderDialogsList is not a function');
+    }
+    
+    // 4. Очищаем окно сообщений
+    const messagesArea = document.getElementById("chatMessagesArea");
+    if (messagesArea) {
+        messagesArea.innerHTML = `
+            <div class="empty-messages">
+                <i class="fas fa-headset"></i>
+                <p>Чат с поддержкой</p>
+                <span>Напишите ваш вопрос, и мы поможем!</span>
+            </div>
+        `;
+    }
+}
   
   // Обновляем активные кнопки
   updateActiveNavButtons(pageId);
