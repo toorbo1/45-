@@ -23,7 +23,6 @@ function filterProducts() {
 
 // Функция для получения рейтинга продавца
 function getProductRating(product) {
-  // Используем рейтинг из товара или генерируем
   let rating = product.rating || 4.5;
   if (typeof rating === 'string') rating = parseFloat(rating);
   if (isNaN(rating)) rating = 4.5;
@@ -43,7 +42,6 @@ function getProductRating(product) {
     starsHtml += '☆';
   }
   
-  // Количество отзывов
   let reviewsCount = product.sales || product.reviewsCount;
   if (!reviewsCount || reviewsCount === 0) {
     reviewsCount = Math.floor(Math.random() * 500) + 10;
@@ -58,10 +56,8 @@ function getProductRating(product) {
 
 // Функция форматирования цены со скидкой
 function formatPriceWithDiscount(product) {
-  // Если есть скидка и оригинальная цена
   if (product.discount && product.originalPrice) {
     let discountText = product.discount;
-    // Добавляем % если нет
     if (discountText && !discountText.includes('%') && !isNaN(parseFloat(discountText))) {
       discountText = discountText + '%';
     }
@@ -73,7 +69,6 @@ function formatPriceWithDiscount(product) {
     };
   }
   
-  // Проверяем, есть ли скидка в текстовом виде
   if (product.discount && typeof product.discount === 'string') {
     let discountText = product.discount;
     if (!discountText.includes('%') && !isNaN(parseFloat(discountText))) {
@@ -94,116 +89,73 @@ function formatPriceWithDiscount(product) {
     discountText: null
   };
 }
-// ========== УЛУЧШЕНИЕ МОБИЛЬНЫХ КАРТОЧЕК ==========
 
-
-// Дополнительная функция для обновления карточек при загрузке изображений
+// ОСНОВНАЯ ФУНКЦИЯ РЕНДЕРИНГА ТОВАРОВ (КОМПАКТНАЯ ВЕРСИЯ)
+function renderProductGrid(products) {
+  const container = document.getElementById("productsGrid");
+  if (!container) return;
+  
+  if (products.length === 0) {
+    container.innerHTML = "<div class='empty-state'><i class='fas fa-search'></i><p>Ничего не найдено</p></div>";
+    updateProductCount(0);
+    return;
+  }
+  
+  let html = "";
+  products.forEach(prod => {
+    const priceInfo = formatPriceWithDiscount(prod);
+    const ratingInfo = getProductRating(prod);
+    let discountText = priceInfo.discountText || "";
+    
+    html += `
+      <div class="product-card" onclick="window.openProductDetailById('${prod.id}')">
+        <div class="card-image">
+          <img src="${escapeHtml(prod.imageUrl || 'https://picsum.photos/id/42/400/300')}" 
+               alt="${escapeHtml(prod.title)}"
+               loading="lazy"
+               onerror="this.src='https://picsum.photos/id/42/400/300'">
+          ${priceInfo.hasDiscount ? `<span class="discount-badge">-${discountText}</span>` : ''}
+        </div>
+        <div class="card-body">
+          <div class="price-wrapper">
+            <span class="current-price">${escapeHtml(priceInfo.currentPrice)}</span>
+            ${priceInfo.hasDiscount ? `<span class="old-price">${escapeHtml(priceInfo.oldPrice)}</span>` : ''}
+          </div>
+          <h3 class="product-title">${escapeHtml(prod.title)}</h3>
+          <div class="rating">
+            <span class="stars">${ratingInfo.starsHtml}</span>
+            <span class="reviews-count">${ratingInfo.reviewsCount} отзывов</span>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  
+  container.innerHTML = html;
+  updateProductCount(products.length);
+}
+// Функция для исправления изображений
 function fixProductImages() {
-  const images = document.querySelectorAll('.product-img-wrapper img');
+  const images = document.querySelectorAll('.card-image img');
   images.forEach(img => {
     if (!img.complete) {
       img.onload = function() {
-        const wrapper = this.closest('.product-img-wrapper');
+        const wrapper = this.closest('.card-image');
         if (wrapper) {
           wrapper.style.minHeight = 'auto';
         }
       };
     }
+    // Принудительно применяем стили
+    img.style.position = 'absolute';
+    img.style.top = '50%';
+    img.style.left = '50%';
+    img.style.transform = 'translate(-50%, -50%)';
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.objectFit = 'cover';
+    img.style.objectPosition = 'center';
   });
-}
-
-// Вызываем после каждой загрузки товаров
-if (typeof filterProducts === 'function') {
-  const originalFilter = filterProducts;
-  window.filterProducts = function() {
-    originalFilter.apply(this, arguments);
-    setTimeout(fixProductImages, 100);
-  };
-}
-// ОСНОВНАЯ ФУНКЦИЯ РЕНДЕРИНГА ТОВАРОВ
-function renderProductGrid(products) {
-  const container = document.getElementById("productsGrid");
-  if (!container) return;
-  if (products.length === 0) {
-    container.innerHTML = "<div class='card-modern' style='text-align:center;'>Ничего не найдено</div>";
-    updateProductCount(0);
-    return;
-  }
-  let html = "";
-  products.forEach(prod => {
-    const priceInfo = formatPriceWithDiscount(prod);
-    const ratingInfo = getProductRating(prod);
-    
-    // Форматируем текст скидки
-    let discountText = priceInfo.discountText || "";
-    
-    html += `<div class="product-card" onclick="window.openProductDetailById('${prod.id}')">
-      <div class="product-img-wrapper">
-        ${priceInfo.hasDiscount ? `<span class="discount-badge-img">- ${discountText}</span>` : ''}
-        ${prod.imageUrl ? `<img src="${escapeHtml(prod.imageUrl)}" alt="${escapeHtml(prod.title)}" loading="lazy">` : `<i class="fas fa-tag"></i>`}
-      </div>
-      <div class="product-body">
-        <div class="product-price-wrapper">
-          <span class="product-price">${escapeHtml(priceInfo.currentPrice)}</span>
-          ${priceInfo.hasDiscount ? `<span class="product-old-price">${escapeHtml(priceInfo.oldPrice)}</span>` : ''}
-        </div>
-        <div class="product-title">${escapeHtml(prod.title)}</div>
-        <div class="product-rating">
-          <span class="product-stars">${ratingInfo.starsHtml}</span>
-          <span class="product-reviews-count">${ratingInfo.reviewsCount} отзывов</span>
-        </div>
-      </div>
-    </div>`;
-  });
-  container.innerHTML = html;
-  updateProductCount(products.length);
-}
-
-// ОБНОВЛЕННАЯ ФУНКЦИЯ ДЛЯ СТРАНИЦЫ КЛЮЧЕВОГО СЛОВА
-function openKeywordPage(keyword) {
-  const products = JSON.parse(localStorage.getItem("apex_products") || "[]");
-  const filteredProducts = products.filter(p => 
-    p.keyword && p.keyword.toLowerCase().includes(keyword.toLowerCase())
-  );
-  
-  const container = document.getElementById("keywordProductsGrid");
-  const title = document.getElementById("keywordPageTitle");
-  
-  if (title) title.innerText = keyword;
-  
-  if (container) {
-    if (filteredProducts.length === 0) {
-      container.innerHTML = "<div class='card-modern' style='text-align:center;'>Нет товаров по этой категории</div>";
-    } else {
-      container.innerHTML = filteredProducts.map(prod => {
-        const priceInfo = formatPriceWithDiscount(prod);
-        const ratingInfo = getProductRating(prod);
-        
-        let discountText = priceInfo.discountText || "";
-        
-        return `
-        <div class="product-card" onclick="window.openProductDetailById('${prod.id}')">
-          <div class="product-img-wrapper">
-            ${priceInfo.hasDiscount ? `<span class="discount-badge-img">🔥 ${discountText}</span>` : ''}
-            ${prod.imageUrl ? `<img src="${escapeHtml(prod.imageUrl)}" alt="${escapeHtml(prod.title)}" loading="lazy">` : `<i class="fas fa-tag"></i>`}
-          </div>
-          <div class="product-body">
-            <div class="product-price-wrapper">
-              <span class="product-price">${escapeHtml(priceInfo.currentPrice)}</span>
-              ${priceInfo.hasDiscount ? `<span class="product-old-price">${escapeHtml(priceInfo.oldPrice)}</span>` : ''}
-            </div>
-            <div class="product-title">${escapeHtml(prod.title)}</div>
-            <div class="product-rating">
-              <span class="product-stars">${ratingInfo.starsHtml}</span>
-              <span class="product-reviews-count">${ratingInfo.reviewsCount} отзывов</span>
-            </div>
-          </div>
-        </div>
-      `}).join('');
-    }
-  }
-  
-  navigate("keywordPage");
 }
 
 function updateProductCount(count) {
@@ -250,10 +202,10 @@ function loadProducts() {
     if (needSave) localStorage.setItem("apex_products", JSON.stringify(productsArray));
   } else {
     productsArray = [
-      { id: crypto.randomUUID?.() || '1', title: "Активная подписка | Турция", price: "0₺", seller: "Zubiko1337", rating: 5.0, sales: 24678, fullDesc: "Активный пользователь | Турция. Однократно актуальный бонус. Моментальная выдача. Гарантия качества.", positive: "98%", responseTime: "отвечает за 5 мин", imageUrl: "https://picsum.photos/id/104/400/200", keyword: "Discord", type: "Nitro" },
-      { id: crypto.randomUUID?.() || '2', title: "1000 Wild Cores", price: "668 ₽", seller: "GameSeller", rating: 4.9, sales: 12500, fullDesc: "Мгновенная доставка на аккаунт. Моментальная выдача. Гарантия качества.", positive: "97%", responseTime: "отвечает за 2 мин", imageUrl: "https://picsum.photos/id/26/400/200", keyword: "Steam", type: "Premium" },
-      { id: crypto.randomUUID?.() || '3', title: "Premium Access 30д", price: "450 ₽", seller: "ApexStore", rating: 5.0, sales: 8900, fullDesc: "Доступ ко всем функциям на 30 дней. Моментальная выдача. Гарантия качества.", positive: "99%", responseTime: "отвечает за 1 мин", imageUrl: "https://picsum.photos/id/0/400/200", keyword: "Spotify", type: "Premium" },
-      { id: crypto.randomUUID?.() || '4', title: "CS2 Prime Account", price: "1200 ₽", seller: "TopAcc", rating: 4.8, sales: 3400, fullDesc: "Готовый аккаунт с Prime статусом. Моментальная выдача. Гарантия качества.", positive: "95%", responseTime: "отвечает за 3 мин", imageUrl: "https://picsum.photos/id/155/400/200", keyword: "Steam", type: "Prime" }
+      { id: crypto.randomUUID?.() || '1', title: "Активная подписка | Турция", price: "0₺", seller: "Zubiko1337", rating: 5.0, sales: 24678, fullDesc: "Активный пользователь | Турция. Однократно актуальный бонус. Моментальная выдача. Гарантия качества.", positive: "98%", responseTime: "отвечает за 5 мин", imageUrl: "https://picsum.photos/id/104/400/300", keyword: "Discord", type: "Nitro" },
+      { id: crypto.randomUUID?.() || '2', title: "1000 Wild Cores", price: "668 ₽", seller: "GameSeller", rating: 4.9, sales: 12500, fullDesc: "Мгновенная доставка на аккаунт. Моментальная выдача. Гарантия качества.", positive: "97%", responseTime: "отвечает за 2 мин", imageUrl: "https://picsum.photos/id/26/400/300", keyword: "Steam", type: "Premium" },
+      { id: crypto.randomUUID?.() || '3', title: "Premium Access 30д", price: "450 ₽", seller: "ApexStore", rating: 5.0, sales: 8900, fullDesc: "Доступ ко всем функциям на 30 дней. Моментальная выдача. Гарантия качества.", positive: "99%", responseTime: "отвечает за 1 мин", imageUrl: "https://picsum.photos/id/0/400/300", keyword: "Spotify", type: "Premium" },
+      { id: crypto.randomUUID?.() || '4', title: "CS2 Prime Account", price: "1200 ₽", seller: "TopAcc", rating: 4.8, sales: 3400, fullDesc: "Готовый аккаунт с Prime статусом. Моментальная выдача. Гарантия качества.", positive: "95%", responseTime: "отвечает за 3 мин", imageUrl: "https://picsum.photos/id/155/400/300", keyword: "Steam", type: "Prime" }
     ];
     localStorage.setItem("apex_products", JSON.stringify(productsArray));
   }
@@ -305,7 +257,7 @@ function openProductDetailById(productId) {
   detailContainer.innerHTML = `
     <div class="detail-top-row">
       <div class="detail-image-col">
-        <img class="product-detail-image" src="${escapeHtml(p.imageUrl || 'https://picsum.photos/id/20/400/200')}" alt="товар" onerror="this.src='https://picsum.photos/id/20/400/200'">
+        <img class="product-detail-image" src="${escapeHtml(p.imageUrl || 'https://picsum.photos/id/20/400/300')}" alt="товар" onerror="this.src='https://picsum.photos/id/20/400/300'">
       </div>
       <div class="detail-info-col">
         <div class="active-badge">
@@ -441,10 +393,10 @@ function createNewProduct() {
   const keywordSelect = document.getElementById("productKeyword");
   const keywordId = keywordSelect?.value;
   const productType = document.getElementById("productType")?.value.trim();
-  const title = document.getElementById("productTitle")?.value.trim();
-  const price = document.getElementById("productPrice")?.value.trim();
-  const description = document.getElementById("productDescription")?.value.trim();
-  const imageUrl = document.getElementById("productImageUrl")?.value.trim();
+  const title = document.getElementById("productTitleOld")?.value.trim();
+  const price = document.getElementById("productPriceOld")?.value.trim();
+  const description = document.getElementById("productDescriptionOld")?.value.trim();
+  const imageUrl = document.getElementById("productImageUrlOld")?.value.trim();
   
   if (!title) {
     alert("Введите название товара");
@@ -480,7 +432,7 @@ function createNewProduct() {
     fullDesc: `${fullDescription} Моментальная выдача. Гарантия качества.`,
     positive: "100%",
     responseTime: "отвечает быстро",
-    imageUrl: imageUrl || "https://picsum.photos/id/42/400/200",
+    imageUrl: imageUrl || "https://picsum.photos/id/42/400/300",
     keyword: keywordName || "Без категории",
     type: productType || "Стандарт"
   });
@@ -491,10 +443,10 @@ function createNewProduct() {
   
   if (keywordSelect) keywordSelect.value = "";
   document.getElementById("productType").value = "";
-  document.getElementById("productTitle").value = "";
-  document.getElementById("productPrice").value = "";
-  document.getElementById("productDescription").value = "";
-  document.getElementById("productImageUrl").value = "";
+  document.getElementById("productTitleOld").value = "";
+  document.getElementById("productPriceOld").value = "";
+  document.getElementById("productDescriptionOld").value = "";
+  document.getElementById("productImageUrlOld").value = "";
   
   alert("✅ Товар успешно создан!");
 }
@@ -563,6 +515,57 @@ function openKeywordPageByBlock(blockId) {
   openKeywordPage(block.name);
 }
 
+function openKeywordPage(keyword) {
+  const products = JSON.parse(localStorage.getItem("apex_products") || "[]");
+  const filteredProducts = products.filter(p => 
+    p.keyword && p.keyword.toLowerCase().includes(keyword.toLowerCase())
+  );
+  
+  const container = document.getElementById("keywordProductsGrid");
+  const title = document.getElementById("keywordPageTitle");
+  
+  if (title) title.innerText = keyword;
+  
+  if (container) {
+    if (filteredProducts.length === 0) {
+      container.innerHTML = "<div class='empty-state'><i class='fas fa-box-open'></i><p>Нет товаров по этой категории</p></div>";
+    } else {
+      let html = "";
+      filteredProducts.forEach(prod => {
+        const priceInfo = formatPriceWithDiscount(prod);
+        const ratingInfo = getProductRating(prod);
+        let discountText = priceInfo.discountText || "";
+        
+        html += `
+          <div class="product-card" onclick="window.openProductDetailById('${prod.id}')">
+            <div class="card-image">
+              <img src="${escapeHtml(prod.imageUrl || 'https://picsum.photos/id/42/400/300')}" 
+                   alt="${escapeHtml(prod.title)}"
+                   loading="lazy"
+                   onerror="this.src='https://picsum.photos/id/42/400/300'">
+              ${priceInfo.hasDiscount ? `<span class="discount-badge">🔥 ${discountText}</span>` : ''}
+            </div>
+            <div class="card-body">
+              <div class="price-wrapper">
+                <span class="current-price">${escapeHtml(priceInfo.currentPrice)}</span>
+                ${priceInfo.hasDiscount ? `<span class="old-price">${escapeHtml(priceInfo.oldPrice)}</span>` : ''}
+              </div>
+              <h3 class="product-title">${escapeHtml(prod.title)}</h3>
+              <div class="rating">
+                <span class="stars">${ratingInfo.starsHtml}</span>
+                <span class="reviews-count">${ratingInfo.reviewsCount} отзывов</span>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+  }
+  
+  navigate("keywordPage");
+}
+
 function goBack() {
   navigate("home");
 }
@@ -586,14 +589,16 @@ document.addEventListener('DOMContentLoaded', function() {
   setTimeout(updateUserProductsCount, 100);
   initGlobalSearch();
 });
+
 // Фикс изображений на мобильных — cover (полное заполнение)
 (function fixMobileImages() {
   function applyImageFix() {
-    const productImages = document.querySelectorAll('.product-img-wrapper img');
+    const productImages = document.querySelectorAll('.card-image img');
     productImages.forEach(img => {
       img.style.position = 'absolute';
-      img.style.top = '0';
-      img.style.left = '0';
+      img.style.top = '50%';
+      img.style.left = '50%';
+      img.style.transform = 'translate(-50%, -50%)';
       img.style.width = '100%';
       img.style.height = '100%';
       img.style.objectFit = 'cover';
