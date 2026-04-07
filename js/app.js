@@ -130,6 +130,7 @@ function setupChatEventListeners() {
   }
 }
 
+// app.js
 // ЕДИНАЯ ФУНКЦИЯ ПОКАЗА СТРАНИЦЫ
 function showPage(pageId) {
   console.log('Showing page:', pageId);
@@ -151,6 +152,27 @@ function showPage(pageId) {
     console.error('Page not found:', pageId);
   }
   
+  // === НОВЫЙ КОД: ПРОКРУТКА ВВЕРХ ДЛЯ ВСЕХ СТРАНИЦ ===
+  // Прокручиваем окно в самое начало
+  window.scrollTo({
+    top: 0,
+    left: 0,
+    behavior: 'smooth' // или 'auto' для мгновенной прокрутки
+  });
+  
+  // Специальная обработка для страницы чата (прокрутка после загрузки сообщений)
+  if (pageId === 'chat') {
+    // Небольшая задержка, чтобы DOM чата успел обновиться
+    setTimeout(() => {
+      const messagesArea = document.getElementById('chatMessagesArea');
+      if (messagesArea) {
+        messagesArea.scrollTop = 0; // Прокручиваем сообщения в начало
+      }
+      // Дополнительная прокрутка окна на всякий случай
+      window.scrollTo(0, 0);
+    }, 100);
+  }
+  
   // Управление нижними меню
   const mainBottomNav = document.getElementById('bottomNav');
   
@@ -164,35 +186,31 @@ function showPage(pageId) {
   } else if (pageId === 'products-manage') {
     if (mainBottomNav) mainBottomNav.style.display = 'flex';
     if (typeof renderUserProductsList === 'function') renderUserProductsList();
-  } // В функции showPage найдите блок else if (pageId === 'chat') и замените на:
-
-else if (pageId === 'chat') {
+  } else if (pageId === 'chat') {
     if (mainBottomNav) mainBottomNav.style.display = 'flex';
     
-    // ПРИНУДИТЕЛЬНО ПОКАЗЫВАЕМ СПИСОК ЧАТОВ
     console.log('OPENING CHAT PAGE');
     
-    // 1. Скрываем окно чата
-    const chatWindow = document.getElementById("chatWindow");
-    if (chatWindow) {
-        chatWindow.style.display = "none";
-    }
-    
-    // 2. Показываем сайдбар со списком
+    // Показываем сайдбар со списком
     const sidebar = document.getElementById("chatsSidebar");
+    const chatWindow = document.getElementById("chatWindow");
+    
     if (sidebar) {
         sidebar.style.display = "flex";
+        sidebar.classList.remove('hide');
+    }
+    if (chatWindow) {
+        chatWindow.style.display = "none";
+        chatWindow.classList.remove('active');
     }
     
-    // 3. ПРИНУДИТЕЛЬНО ВЫЗЫВАЕМ ОТОБРАЖЕНИЕ СПИСКА
+    // Вызываем отображение списка
     if (typeof renderDialogsList === 'function') {
         console.log('Calling renderDialogsList');
         renderDialogsList();
-    } else {
-        console.error('renderDialogsList is not a function');
     }
     
-    // 4. Очищаем окно сообщений
+    // Очищаем окно сообщений
     const messagesArea = document.getElementById("chatMessagesArea");
     if (messagesArea) {
         messagesArea.innerHTML = `
@@ -203,7 +221,7 @@ else if (pageId === 'chat') {
             </div>
         `;
     }
-}
+  }
   
   // Обновляем активные кнопки
   updateActiveNavButtons(pageId);

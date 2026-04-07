@@ -7,8 +7,8 @@
   right: 0;
   background: rgba(10, 14, 23, 0.95);
   backdrop-filter: blur(25px);
-  border-top: 0.5px solid rgba(82, 137, 35, 0.424);
-  box-shadow: 0 -4px 20px #59de784d;
+
+
   z-index: 1000;
   will-change: transform;
 }
@@ -21,8 +21,8 @@
   width: 100%;
   max-width: 500px;
   margin: 0 auto;
-  padding: 12px 12px 24px;
-  min-height: 80px;
+  padding: 12px 12px 14px;  /* было 24px, стало 14px */
+  min-height: 70px;  /* было 80px, стало 70px */
 }
 
 .nav-item {
@@ -187,16 +187,15 @@
 .nav-icon:hover svg {
   stroke: #888888; /* Не меняется при наведении */
 }
-
 /* Мобильные устройства */
 @media (max-width: 768px) {
   .nav-container {
-    padding: 10px 12px 20px;
-    min-height: 75px;
+    padding: 10px 12px 12px;  /* было 20px, стало 12px */
+    min-height: 65px;  /* было 75px, стало 65px */
   }
   
   .blob {
-    height: 48px !important;
+    height: 44px !important;  /* было 48px, стало 44px */
     top: 50% !important;
     transform: translateY(-50%) !important;
     bottom: auto !important;
@@ -205,12 +204,12 @@
 
 @media (max-width: 480px) {
   .nav-container {
-    padding: 8px 12px 18px;
-    min-height: 70px;
+    padding: 8px 12px 10px;  /* было 18px, стало 10px */
+    min-height: 60px;  /* было 70px, стало 60px */
   }
   
   .blob {
-    height: 44px !important;
+    height: 40px !important;  /* было 44px, стало 40px */
     top: 50% !important;
     transform: translateY(-50%) !important;
     bottom: auto !important;
@@ -229,14 +228,27 @@
 
 @media (max-width: 380px) {
   .nav-container {
-    padding: 6px 12px 16px;
-    min-height: 65px;
+    padding: 6px 12px 8px;  /* было 16px, стало 8px */
+    min-height: 55px;  /* было 65px, стало 55px */
   }
   
   .blob {
-    height: 40px !important;
+    height: 36px !important;  /* было 40px, стало 36px */
     top: 50% !important;
     transform: translateY(-50%) !important;
+  }
+}
+
+/* Safe area для iPhone */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .nav-container {
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));  /* было 20px, стало 10px */
+  }
+  
+  .blob {
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    bottom: auto !important;
   }
 }
 

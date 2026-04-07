@@ -1,4 +1,4 @@
-/* ========== ЧАТ - ФИНАЛЬНАЯ ВЕРСИЯ ========== */
+/* ========== ЧАТ - ФИНАЛЬНАЯ РАБОЧАЯ ВЕРСИЯ ========== */
 
 .chats-container {
   display: flex;
@@ -178,7 +178,7 @@
   justify-content: flex-start;
 }
 
-/* ПОЛЕ ВВОДА - ПОДНЯТО ВЫШЕ */
+/* ПОЛЕ ВВОДА */
 .chat-input-wrapper {
   padding: 12px 16px;
   background: #0e1220;
@@ -415,15 +415,6 @@
     background: #0b0f1a;
   }
   
-  /* Отступ сверху через padding у body, а не у чата */
-  .page#chat {
-    padding-top: 60px !important;
-  }
-  
-  .chat-window .chat-window-header {
-    padding-top: 12px;
-  }
-  
   .message-group {
     max-width: 90%;
   }
@@ -463,10 +454,6 @@
 
 /* ========== ОЧЕНЬ МАЛЕНЬКИЕ ========== */
 @media (max-width: 480px) {
-  .page#chat {
-    padding-top: 55px !important;
-  }
-  
   .chat-window-header {
     padding: 12px 16px;
   }
@@ -485,5 +472,103 @@
   
   .chat-partner-name {
     font-size: 0.9rem;
+  }
+}
+
+/* ========== ФИКС - ВОЗВРАЩАЕМ ВИДИМОСТЬ ПАНЕЛЕЙ ========== */
+.page#chat {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.page#chat .chats-container {
+  height: calc(100vh - 140px);
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  .page#chat {
+    padding: 0 !important;
+  }
+  
+  .page#chat .chats-container {
+    height: calc(100vh - 130px);
+  }
+}
+
+@media (max-width: 480px) {
+  .page#chat .chats-container {
+    height: calc(100vh - 120px);
+  }
+}
+
+/* ========== ФИКС ДЛЯ ТЕЛЕФОНОВ - ПЕРЕОПРЕДЕЛЕНИЕ ========== */
+@media (max-width: 768px) {
+  .page#chat {
+    padding-top: 60px !important;
+    padding-bottom: 70px !important;
+  }
+  
+  .chats-container {
+    height: calc(100vh - 130px) !important;
+    position: relative !important;
+  }
+  
+  .chat-window {
+    position: fixed !important;
+    top: 60px !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 70px !important;
+    width: 100% !important;
+    height: auto !important;
+    background: #0b0f1a !important;
+    z-index: 1000 !important;
+  }
+  
+  .chat-window.active {
+    display: flex !important;
+  }
+  
+  .chat-window-header {
+    position: sticky !important;
+    top: 0 !important;
+    background: rgba(16, 20, 35, 0.98) !important;
+    z-index: 10 !important;
+    padding: 12px 16px !important;
+  }
+  
+  .chats-sidebar {
+    position: fixed !important;
+    top: 60px !important;
+    left: 0 !important;
+    bottom: 70px !important;
+    width: 100% !important;
+    background: #0a0f1c !important;
+    z-index: 999 !important;
+    overflow-y: auto !important;
+    transition: transform 0.3s ease !important;
+  }
+  
+  .chats-sidebar.hide {
+    transform: translateX(-100%) !important;
+  }
+  
+  .back-to-chat-list {
+    display: flex !important;
+  }
+  
+  .chat-messages-area {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    padding: 12px !important;
+  }
+  
+  .chat-input-wrapper {
+    position: sticky !important;
+    bottom: 0 !important;
+    background: #0e1220 !important;
+    padding: 10px 16px !important;
   }
 }

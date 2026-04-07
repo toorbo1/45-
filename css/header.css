@@ -281,8 +281,8 @@
 }
 
 .header-logo {
-  height: 40px;
-  width: auto;
+  width: 150px;      /* Было меньше, увеличь это значение */
+  height: auto; 
   object-fit: contain;
   border-radius: 8px;
 }

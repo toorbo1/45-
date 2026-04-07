@@ -190,13 +190,16 @@ function loadProducts() {
 }
 
 function openProductDetailById(productId) {
+  // Прокручиваем страницу вверх перед открытием деталей
+  window.scrollTo(0, 0);
+  
   const p = productsArray.find(prod => prod.id === productId);
   if (!p) {
     console.error("Товар не найден", productId);
     alert("Товар не найден");
     return;
   }
-  
+
   const detailContainer = document.getElementById("detailContent");
   if (!detailContainer) return;
 

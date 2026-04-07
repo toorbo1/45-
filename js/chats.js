@@ -1,4 +1,4 @@
-// chats.js - ПРОСТАЯ РАБОЧАЯ ВЕРСИЯ
+// chats.js - ПОЛНАЯ РАБОЧАЯ ВЕРСИЯ
 
 let dialogs = [];
 let currentUser = null;
@@ -71,8 +71,7 @@ function closeChatWindow() {
     const chatWindow = document.getElementById("chatWindow");
     
     if (sidebar) {
-        sidebar.style.display = "flex";
-        sidebar.classList.remove("hide");
+        sidebar.classList.remove('hide');
     }
     if (chatWindow) {
         chatWindow.style.display = "none";
@@ -102,7 +101,9 @@ function openChatWithDialog(dialogId) {
     const sidebar = document.getElementById("chatsSidebar");
     const chatWindow = document.getElementById("chatWindow");
     
-    if (sidebar) sidebar.style.display = "none";
+    if (sidebar) {
+        sidebar.classList.add('hide');
+    }
     if (chatWindow) {
         chatWindow.style.display = "flex";
         chatWindow.classList.add("active");
@@ -179,7 +180,7 @@ function renderMessages(dialogId) {
             html += `<div class="date-divider"><span>${dateStr}</span></div>`;
         }
         
-        // Обработка текста - заменяем переносы на <br>, но не добавляем лишних
+        // Обработка текста - заменяем переносы на <br>
         let messageText = escapeHtml(msg.text);
         messageText = messageText.replace(/\n/g, '<br>');
         
