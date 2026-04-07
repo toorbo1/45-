@@ -257,15 +257,35 @@
     modal.classList.add('active');
   }
   
-  function setupBalanceClick() {
-    const balanceCard = document.querySelector('.profile-balance-card');
-    if (balanceCard) {
-      balanceCard.addEventListener('click', () => {
-        alert('💰 Баланс: 0 ₽\nПополнение и вывод средств');
-      });
-    }
+function setupBalanceClick() {
+  const balanceCard = document.querySelector('.profile-balance-card');
+  if (balanceCard) {
+    // Удаляем старый обработчик, если есть
+    const newBalanceCard = balanceCard.cloneNode(true);
+    balanceCard.parentNode.replaceChild(newBalanceCard, balanceCard);
+    
+    newBalanceCard.addEventListener('click', () => {
+      // Открываем страницу вывода средств
+      if (typeof window.showPage === 'function') {
+        // Убеждаемся что страница вывода существует
+        let withdrawPage = document.getElementById('withdrawPage');
+        if (!withdrawPage) {
+          console.warn('Страница вывода не найдена в DOM');
+          alert('Страница вывода временно недоступна');
+          return;
+        }
+        window.showPage('withdrawPage');
+        // Инициализируем страницу вывода
+        if (typeof window.initWithdrawPage === 'function') {
+          setTimeout(window.initWithdrawPage, 50);
+        }
+      } else {
+        alert('💰 Баланс: ' + (window.userProfile?.balance?.toFixed(2) || '0') + ' ₽\nПополнение и вывод средств');
+      }
+    });
   }
-  
+}
+
   function setupReviewsClick() {
     const reviewsLink = document.getElementById('profileReviewsLink');
     if (reviewsLink) {
