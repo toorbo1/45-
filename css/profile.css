@@ -176,7 +176,7 @@
   margin-top: 8px;
 }
 
-/* Блок баланса */
+/* Блок баланса — полная ширина */
 .profile-balance-card {
   background: linear-gradient(135deg, #1a2332, #0f1722);
   border-radius: 28px;
@@ -188,6 +188,7 @@
   justify-content: space-between;
   cursor: pointer;
   transition: all 0.25s ease;
+  width: 100%;
 }
 
 .profile-balance-card:hover {
@@ -227,6 +228,35 @@
 .profile-balance-card:hover .balance-chevron {
   transform: translateX(4px);
   color: #bbbbcc;
+}
+
+/* Кнопка витрины */
+.shop-window-btn {
+  width: 100%;
+  background: linear-gradient(105deg, #2b6ef0, #1a4bcb);
+  border: none;
+  border-radius: 60px;
+  padding: 14px 20px;
+  margin-bottom: 24px;
+  color: white;
+  font-weight: 700;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 15px rgba(43, 110, 240, 0.3);
+}
+
+.shop-window-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(43, 110, 240, 0.4);
+}
+
+.shop-window-btn:active {
+  transform: scale(0.98);
 }
 
 /* Статистика — 3 колонки на ПК, адаптив */
@@ -580,7 +610,7 @@
 
 /* ========== АДАПТИВ ДЛЯ МОБИЛЬНЫХ ========== */
 @media (max-width: 768px) {
-    .profile-hero-section {
+  .profile-hero-section {
     background: linear-gradient(135deg, #11131f, #0a0c16);
     margin: -16px -16px 0 -16px;
     border-radius: 0 0 32px 32px;
@@ -664,6 +694,12 @@
     width: 44px;
     height: 44px;
     font-size: 22px;
+  }
+  
+  .shop-window-btn {
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    font-size: 0.9rem;
   }
   
   .profile-stats-grid {

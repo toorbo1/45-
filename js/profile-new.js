@@ -47,6 +47,7 @@
     setupAvatarChangeButton();
     setupBalanceClick();
     setupReviewsClick();
+    setupShopWindowButton();
     
     // Перестраиваем HTML hero-секции под горизонтальный макет
     rebuildHeroLayout();
@@ -55,22 +56,38 @@
     resetProfileStats();
   }
   
+  // Кнопка витрины
+  function setupShopWindowButton() {
+    const shopBtn = document.querySelector('.shop-window-btn');
+    if (shopBtn) {
+      shopBtn.addEventListener('click', () => {
+        alert('🏪 Витрина магазина\n\nЗдесь будут отображаться ваши товары для покупателей.\nСкоро появится возможность настроить витрину!');
+      });
+    }
+  }
+  
   // Сброс статистики профиля
   function resetProfileStats() {
-    // Обнуляем статистику в userProfile если он существует
     if (window.userProfile) {
-      window.userProfile.productsCount = 0;
+      const products = JSON.parse(localStorage.getItem('apex_products') || '[]');
+      const userProducts = products.filter(p => p.seller === window.currentUser);
+      
+      window.userProfile.productsCount = userProducts.length;
       window.userProfile.purchasesCount = 0;
       window.userProfile.salesCount = 0;
-      window.userProfile.activeOrders = 0;
-      window.userProfile.completedOrders = 0;
+      
+      // Подсчет активных и завершенных товаров
+      const activeProducts = userProducts.filter(p => p.status !== 'completed');
+      const completedProducts = userProducts.filter(p => p.status === 'completed');
+      
+      window.userProfile.activeOrders = activeProducts.length;
+      window.userProfile.completedOrders = completedProducts.length;
       window.userProfile.balance = 0;
-      window.userProfile.rating = 0;
+      window.userProfile.rating = 5.0;
       window.userProfile.reviewsCount = 0;
       localStorage.setItem("apex_profile", JSON.stringify(window.userProfile));
     }
     
-    // Обновляем UI
     updateNewProfileStats(window.userProfile || {
       productsCount: 0,
       purchasesCount: 0,
@@ -83,24 +100,19 @@
     });
   }
   
-  // Перестраиваем структуру hero-секции для горизонтального отображения
   function rebuildHeroLayout() {
     const heroSection = document.getElementById('profileHeroSection');
     if (!heroSection) return;
     
-    // Проверяем, есть ли уже новая структура
     if (heroSection.querySelector('.hero-content')) return;
     
     const avatarHtml = heroSection.querySelector('.avatar-centered')?.outerHTML || '';
     const infoHtml = heroSection.querySelector('.hero-info')?.outerHTML || '';
-    const changeBtn = heroSection.querySelector('.change-bg-btn-hero');
     
-    // Создаём новую структуру
     const newContent = document.createElement('div');
     newContent.className = 'hero-content';
     newContent.innerHTML = avatarHtml + infoHtml;
     
-    // Очищаем и вставляем
     const oldAvatar = heroSection.querySelector('.avatar-centered');
     const oldInfo = heroSection.querySelector('.hero-info');
     if (oldAvatar && oldInfo) {
@@ -287,7 +299,7 @@
     if (joinedEl && profileData.joinedDate) joinedEl.innerText = `на Плейнексис с ${profileData.joinedDate}`;
     if (reviewsCountEl) reviewsCountEl.innerText = (profileData.reviewsCount || 0) + ' отзыва';
     if (ratingValueEl) ratingValueEl.innerText = (profileData.rating || 0).toFixed(1);
-    if (starsEl) starsEl.innerHTML = '☆☆☆☆☆';
+    if (starsEl) starsEl.innerHTML = '★★★★★';
     
     const avatarSpan = document.querySelector('#profileAvatarCircle span');
     if (avatarSpan && window.currentUser) {
@@ -295,7 +307,136 @@
     }
   }
   
-  // Функция для редактирования товара
+  // Функция для подсчета активных и завершенных товаров
+  function updateActiveCompletedCounts() {
+    const products = JSON.parse(localStorage.getItem('apex_products') || '[]');
+    const userProducts = products.filter(p => p.seller === window.currentUser);
+    
+    const activeProducts = userProducts.filter(p => p.status !== 'completed');
+    const completedProducts = userProducts.filter(p => p.status === 'completed');
+    
+    const activeCountEl = document.getElementById('activeCount');
+    const completedCountEl = document.getElementById('completedCount');
+    
+    if (activeCountEl) activeCountEl.innerText = activeProducts.length;
+    if (completedCountEl) completedCountEl.innerText = completedProducts.length;
+    
+    if (window.userProfile) {
+      window.userProfile.activeOrders = activeProducts.length;
+      window.userProfile.completedOrders = completedProducts.length;
+      localStorage.setItem("apex_profile", JSON.stringify(window.userProfile));
+    }
+  }
+  
+  function loadUserProductsInProfile() {
+    const container = document.getElementById('profileProductsList');
+    if (!container) return;
+    const products = JSON.parse(localStorage.getItem('apex_products') || '[]');
+    const userProducts = products.filter(p => p.seller === window.currentUser);
+    
+    if (window.userProfile) {
+      window.userProfile.productsCount = userProducts.length;
+      localStorage.setItem("apex_profile", JSON.stringify(window.userProfile));
+      updateNewProfileStats(window.userProfile);
+    }
+    
+    updateActiveCompletedCounts();
+    
+    if (userProducts.length === 0) {
+      container.innerHTML = `
+        <div class="empty-products">
+          <i class="fas fa-box-open"></i>
+          <p>Нет товаров</p>
+          <button class="btn-glow sell-btn" onclick="window.openModal()">Выставить товар</button>
+        </div>
+      `;
+      return;
+    }
+    
+    container.innerHTML = userProducts.map(product => `
+      <div class="profile-product-item" style="position: relative;">
+        <img class="profile-product-img" src="${escapeHtml(product.imageUrl || 'https://picsum.photos/id/42/50/50')}" alt="${escapeHtml(product.title)}" onclick="window.openProductDetailById('${product.id}')">
+        <div class="profile-product-info" onclick="window.openProductDetailById('${product.id}')" style="cursor: pointer;">
+          <div class="profile-product-title">${escapeHtml(product.title)}</div>
+          <div class="profile-product-price">${escapeHtml(product.price)}</div>
+          <div class="profile-product-status ${product.status === 'completed' ? 'status-completed' : 'status-active'}">
+            ${product.status === 'completed' ? '● Завершён' : '● Активен'}
+          </div>
+        </div>
+        <button class="edit-product-btn" onclick="editProductFromProfile('${product.id}')">
+          <i class="fas fa-edit"></i>
+        </button>
+      </div>
+    `).join('');
+  }
+  
+  function loadActiveProducts() {
+    const container = document.getElementById('profileProductsList');
+    if (!container) return;
+    const products = JSON.parse(localStorage.getItem('apex_products') || '[]');
+    const userProducts = products.filter(p => p.seller === window.currentUser && p.status !== 'completed');
+    
+    updateActiveCompletedCounts();
+    
+    if (userProducts.length === 0) {
+      container.innerHTML = `
+        <div class="empty-products">
+          <i class="fas fa-box-open"></i>
+          <p>Нет активных товаров</p>
+          <button class="btn-glow sell-btn" onclick="window.openModal()">Выставить товар</button>
+        </div>
+      `;
+      return;
+    }
+    
+    container.innerHTML = userProducts.map(product => `
+      <div class="profile-product-item" style="position: relative;">
+        <img class="profile-product-img" src="${escapeHtml(product.imageUrl || 'https://picsum.photos/id/42/50/50')}" alt="${escapeHtml(product.title)}" onclick="window.openProductDetailById('${product.id}')">
+        <div class="profile-product-info" onclick="window.openProductDetailById('${product.id}')" style="cursor: pointer;">
+          <div class="profile-product-title">${escapeHtml(product.title)}</div>
+          <div class="profile-product-price">${escapeHtml(product.price)}</div>
+          <div class="profile-product-status status-active">● Активен</div>
+        </div>
+        <button class="edit-product-btn" onclick="editProductFromProfile('${product.id}')">
+          <i class="fas fa-edit"></i>
+        </button>
+      </div>
+    `).join('');
+  }
+  
+  function loadCompletedProducts() {
+    const container = document.getElementById('profileProductsList');
+    if (!container) return;
+    const products = JSON.parse(localStorage.getItem('apex_products') || '[]');
+    const userProducts = products.filter(p => p.seller === window.currentUser && p.status === 'completed');
+    
+    updateActiveCompletedCounts();
+    
+    if (userProducts.length === 0) {
+      container.innerHTML = `
+        <div class="empty-products">
+          <i class="fas fa-check-circle"></i>
+          <p>Нет завершенных товаров</p>
+        </div>
+      `;
+      return;
+    }
+    
+    container.innerHTML = userProducts.map(product => `
+      <div class="profile-product-item" style="position: relative;">
+        <img class="profile-product-img" src="${escapeHtml(product.imageUrl || 'https://picsum.photos/id/42/50/50')}" alt="${escapeHtml(product.title)}" onclick="window.openProductDetailById('${product.id}')">
+        <div class="profile-product-info" onclick="window.openProductDetailById('${product.id}')" style="cursor: pointer;">
+          <div class="profile-product-title">${escapeHtml(product.title)}</div>
+          <div class="profile-product-price">${escapeHtml(product.price)}</div>
+          <div class="profile-product-status status-completed">● Завершён</div>
+        </div>
+        <button class="edit-product-btn" onclick="editProductFromProfile('${product.id}')">
+          <i class="fas fa-edit"></i>
+        </button>
+      </div>
+    `).join('');
+  }
+  
   function editProductFromProfile(productId) {
     const products = JSON.parse(localStorage.getItem("apex_products") || "[]");
     const product = products.find(p => p.id === productId);
@@ -305,17 +446,14 @@
       return;
     }
     
-    // Проверяем, что товар принадлежит текущему пользователю
     if (product.seller !== window.currentUser) {
       alert("Вы можете редактировать только свои товары");
       return;
     }
     
-    // Открываем модальное окно редактирования
     openEditProductModal(product);
   }
   
-  // Открытие модального окна редактирования товара
   function openEditProductModal(product) {
     let modal = document.getElementById('editProductModal');
     if (!modal) {
@@ -341,7 +479,6 @@
       `;
       document.body.appendChild(modal);
       
-      // Заполняем select ключевыми словами
       const keywordSelect = modal.querySelector('#editKeyword');
       const storedKeywords = localStorage.getItem("apex_keywords");
       let keywords = [];
@@ -367,7 +504,6 @@
       });
     }
     
-    // Заполняем форму данными товара
     document.getElementById('editTitle').value = product.title || '';
     document.getElementById('editPrice').value = product.price || '';
     document.getElementById('editDiscount').value = product.discount || '';
@@ -384,7 +520,6 @@
     modal.classList.add('active');
   }
   
-  // Сохранение отредактированного товара
   function saveProductEdit(productId) {
     const newTitle = document.getElementById('editTitle').value.trim();
     const newPrice = document.getElementById('editPrice').value.trim();
@@ -411,7 +546,6 @@
       return;
     }
     
-    // Получаем название ключевого слова
     let keywordName = "";
     if (keywordId) {
       const storedKeywords = localStorage.getItem("apex_keywords");
@@ -422,7 +556,6 @@
       }
     }
     
-    // Обновляем товар
     products[productIndex] = {
       ...products[productIndex],
       title: newTitle,
@@ -436,22 +569,20 @@
     
     localStorage.setItem("apex_products", JSON.stringify(products));
     
-    // Обновляем глобальный массив
     if (window.productsArray) {
       window.productsArray = products;
     }
     
-    // Закрываем модалку
     const modal = document.getElementById('editProductModal');
     if (modal) modal.classList.remove('active');
     
-    // Обновляем отображение товаров в профиле
     loadUserProductsInProfile();
     
-    // Обновляем текущий активный таб
     const activeTab = document.querySelector('.profile-tab-btn.active');
     if (activeTab && activeTab.getAttribute('data-tab') === 'active') {
       loadActiveProducts();
+    } else if (activeTab && activeTab.getAttribute('data-tab') === 'completed') {
+      loadCompletedProducts();
     } else {
       loadUserProductsInProfile();
     }
@@ -459,116 +590,6 @@
     alert("✅ Товар успешно обновлен!");
   }
   
-  // Переопределяем функцию loadUserProductsInProfile с кнопкой редактирования
-  function loadUserProductsInProfile() {
-    const container = document.getElementById('profileProductsList');
-    if (!container) return;
-    const products = JSON.parse(localStorage.getItem('apex_products') || '[]');
-    const userProducts = products.filter(p => p.seller === window.currentUser);
-    
-    // Обновляем счетчик товаров в статистике
-    if (window.userProfile) {
-      window.userProfile.productsCount = userProducts.length;
-      localStorage.setItem("apex_profile", JSON.stringify(window.userProfile));
-      updateNewProfileStats(window.userProfile);
-    }
-    
-    if (userProducts.length === 0) {
-      container.innerHTML = `
-        <div class="empty-products">
-          <i class="fas fa-box-open"></i>
-          <p>Нет товаров</p>
-          <button class="btn-glow sell-btn" onclick="window.openModal()">Выставить товар</button>
-        </div>
-      `;
-      return;
-    }
-    
-    container.innerHTML = userProducts.map(product => `
-      <div class="profile-product-item" style="position: relative;">
-        <img class="profile-product-img" src="${escapeHtml(product.imageUrl || 'https://picsum.photos/id/42/50/50')}" alt="${escapeHtml(product.title)}" onclick="window.openProductDetailById('${product.id}')">
-        <div class="profile-product-info" onclick="window.openProductDetailById('${product.id}')" style="cursor: pointer;">
-          <div class="profile-product-title">${escapeHtml(product.title)}</div>
-          <div class="profile-product-price">${escapeHtml(product.price)}</div>
-          <div class="profile-product-status status-active">● Активен</div>
-        </div>
-        <button class="edit-product-btn" onclick="editProductFromProfile('${product.id}')" style="
-          background: rgba(59, 130, 246, 0.2);
-          border: none;
-          color: #3b82f6;
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
-          cursor: pointer;
-          transition: all 0.2s;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        " onmouseover="this.style.background='#3b82f6'; this.style.color='white';" onmouseout="this.style.background='rgba(59, 130, 246, 0.2)'; this.style.color='#3b82f6';">
-          <i class="fas fa-edit"></i>
-        </button>
-      </div>
-    `).join('');
-  }
-  
-  function loadActiveProducts() {
-    const container = document.getElementById('profileProductsList');
-    if (!container) return;
-    const products = JSON.parse(localStorage.getItem('apex_products') || '[]');
-    const userProducts = products.filter(p => p.seller === window.currentUser);
-    
-    if (userProducts.length === 0) {
-      container.innerHTML = `
-        <div class="empty-products">
-          <i class="fas fa-box-open"></i>
-          <p>Нет активных товаров</p>
-          <button class="btn-glow sell-btn" onclick="window.openModal()">Выставить товар</button>
-        </div>
-      `;
-      return;
-    }
-    
-    container.innerHTML = userProducts.map(product => `
-      <div class="profile-product-item" style="position: relative;">
-        <img class="profile-product-img" src="${escapeHtml(product.imageUrl || 'https://picsum.photos/id/42/50/50')}" alt="${escapeHtml(product.title)}" onclick="window.openProductDetailById('${product.id}')">
-        <div class="profile-product-info" onclick="window.openProductDetailById('${product.id}')" style="cursor: pointer;">
-          <div class="profile-product-title">${escapeHtml(product.title)}</div>
-          <div class="profile-product-price">${escapeHtml(product.price)}</div>
-          <div class="profile-product-status status-active">● Активен</div>
-        </div>
-        <button class="edit-product-btn" onclick="editProductFromProfile('${product.id}')" style="
-          background: rgba(59, 130, 246, 0.2);
-          border: none;
-          color: #3b82f6;
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
-          cursor: pointer;
-          transition: all 0.2s;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        " onmouseover="this.style.background='#3b82f6'; this.style.color='white';" onmouseout="this.style.background='rgba(59, 130, 246, 0.2)'; this.style.color='#3b82f6';">
-          <i class="fas fa-edit"></i>
-        </button>
-      </div>
-    `).join('');
-  }
-  
-  function loadCompletedProducts() {
-    const container = document.getElementById('profileProductsList');
-    if (!container) return;
-    container.innerHTML = `
-      <div class="empty-products">
-        <i class="fas fa-check-circle"></i>
-        <p>Нет завершенных товаров</p>
-      </div>
-    `;
-  }
-  
-  // Функция escapeHtml
   function escapeHtml(str) {
     if (!str) return '';
     return String(str).replace(/[&<>]/g, function(m) {
@@ -579,7 +600,6 @@
     });
   }
   
-  // Экспортируем функции
   window.initNewProfile = initNewProfile;
   window.updateNewProfileStats = updateNewProfileStats;
   window.loadUserProductsInProfile = loadUserProductsInProfile;
@@ -587,6 +607,7 @@
   window.loadCompletedProducts = loadCompletedProducts;
   window.editProductFromProfile = editProductFromProfile;
   window.saveProductEdit = saveProductEdit;
+  window.updateActiveCompletedCounts = updateActiveCompletedCounts;
   
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
