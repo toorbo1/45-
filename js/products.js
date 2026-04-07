@@ -307,7 +307,7 @@ function openProductDetailById(productId) {
     </div>
 
     <div class="tabs-container">
-      <button class="tab-btn active" data-tab="about">О товаре</button>
+
       <button class="tab-btn" data-tab="reviews">Отзывы (3)</button>
     </div>
     

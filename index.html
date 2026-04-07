@@ -458,128 +458,270 @@
   <div class="products-grid" id="keywordProductsGrid"></div>
 </div>
 
-<!-- ==================== АДМИН ПАНЕЛЬ ==================== -->
+<!-- АДМИН ПАНЕЛЬ (ПОЛНАЯ ВЕРСИЯ) -->
 <div class="page" id="admin">
   <div class="admin-container">
     <h2><i class="fas fa-user-shield"></i> Админ-панель</h2>
     
-    <!-- Блоки игр -->
-    <div class="admin-card">
-      <h3><i class="fas fa-gamepad"></i> Управление блоками игр</h3>
-      <div class="games-blocks-list" id="gamesBlocksList"></div>
-      <div class="add-game-block-form">
-        <input type="text" id="newGameName" placeholder="Название игры/блока" class="input-modern">
-        <select id="newGameKeyword" class="input-modern">
-          <option value="">Без привязки к ключевому слову</option>
-        </select>
-        <select id="newGameIcon" class="input-modern">
-          <option value="fas fa-gamepad">🎮 Gamepad</option>
-          <option value="fab fa-steam">🎮 Steam</option>
-          <option value="fab fa-discord">💬 Discord</option>
-          <option value="fas fa-crown">👑 Premium</option>
-          <option value="fas fa-tv">📺 Netflix</option>
-          <option value="fas fa-music">🎵 Spotify</option>
-          <option value="fas fa-crosshairs">🎯 Valorant</option>
-          <option value="fas fa-cube">🧱 Minecraft</option>
-          <option value="fas fa-skull">💀 CS</option>
-          <option value="fas fa-tree">🌲 Rust</option>
-          <option value="fas fa-plane">✈️ PUBG</option>
-          <option value="fas fa-tank">🚀 Танки</option>
-        </select>
+    <!-- КНОПКИ НАВИГАЦИИ ПО АДМИНКЕ -->
+    <div class="admin-nav-buttons" id="adminNavButtons"></div>
+    
+    <!-- ===== ОСНОВНАЯ СЕКЦИЯ ===== -->
+    <div id="adminMainSection" class="admin-section">
+      <div class="admin-stats-grid">
+        <div class="admin-stat-card">
+          <div class="admin-stat-number" id="adminProductsCount">0</div>
+          <div class="admin-stat-label">Всего товаров</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-number" id="adminPendingCount">0</div>
+          <div class="admin-stat-label">На модерации</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-number" id="adminAdminsCount">0</div>
+          <div class="admin-stat-label">Администраторов</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-number" id="adminDialogsCount">0</div>
+          <div class="admin-stat-label">Чатов поддержки</div>
+        </div>
+      </div>
+      
+      <div class="admin-quick-actions">
+        <h3>Быстрые действия</h3>
+        <div class="quick-buttons">
+          <button class="quick-btn" onclick="showAdminSection('adminModerationSection')">
+            <i class="fas fa-clipboard-list"></i> Модерация
+          </button>
+          <button class="quick-btn" onclick="showAdminSection('adminChatSection')">
+            <i class="fas fa-headset"></i> Чаты
+          </button>
+          <button class="quick-btn" onclick="showAdminSection('adminSlidersSection')">
+            <i class="fas fa-images"></i> Слайдеры
+          </button>
+          <button class="quick-btn" onclick="showAdminSection('adminAdminsSection')">
+            <i class="fas fa-users"></i> Админы
+          </button>
+          <button class="quick-btn" onclick="showAdminSection('adminGamesSection')">
+            <i class="fas fa-gamepad"></i> Игры
+          </button>
+          <button class="quick-btn" onclick="showAdminSection('adminAppsSection')">
+            <i class="fas fa-mobile-alt"></i> Приложения
+          </button>
+          <button class="quick-btn" onclick="showAdminSection('adminProductsSection')">
+            <i class="fas fa-box"></i> Товары
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- ===== 1. УПРАВЛЕНИЕ АДМИНИСТРАТОРАМИ ===== -->
+    <div id="adminAdminsSection" class="admin-section" style="display: none;">
+      <div class="admin-card">
+        <h3><i class="fas fa-user-plus"></i> Назначить администратора</h3>
+        <div class="hire-admin-form">
+          <input type="text" id="newAdminUsername" class="input-modern" placeholder="Никнейм пользователя">
+          <button class="btn-glow" onclick="hireAdmin()">
+            <i class="fas fa-user-shield"></i> Назначить админом
+          </button>
+        </div>
+        <p class="help-text">* Пользователь должен быть зарегистрирован в системе</p>
+      </div>
+      
+      <div class="admin-card">
+        <h3><i class="fas fa-users"></i> Список администраторов</h3>
+        <div id="adminsList" class="admins-list"></div>
+      </div>
+    </div>
+    
+    <!-- ===== 2. МОДЕРАЦИЯ ТОВАРОВ ===== -->
+    <div id="adminModerationSection" class="admin-section" style="display: none;">
+      <div class="admin-card">
+        <h3><i class="fas fa-clipboard-list"></i> Товары на модерации</h3>
+        <div id="pendingProductsList" class="pending-products-list"></div>
+      </div>
+    </div>
+    
+    <!-- ===== 3. РЕДАКТОР СЛАЙДЕРОВ ===== -->
+    <div id="adminSlidersSection" class="admin-section" style="display: none;">
+      <div class="admin-card">
+        <h3><i class="fas fa-images"></i> Редактор слайдеров (карусель)</h3>
+        <p class="help-text">Редактируйте изображения в карусели на главной странице</p>
+        <button class="btn-glow" onclick="openSliderEditor()">
+          <i class="fas fa-edit"></i> Редактировать слайдеры
+        </button>
+      </div>
+    </div>
+    
+    <!-- ===== 4. ЧАТ ПОДДЕРЖКИ (АДМИН) ===== -->
+    <div id="adminChatSection" class="admin-section" style="display: none;">
+      <div class="admin-chat-container">
+        <!-- Сайдбар со списком чатов -->
+        <div class="admin-chat-sidebar" id="adminChatSidebar">
+          <div class="chat-search">
+            <i class="fas fa-search"></i>
+            <input type="text" id="adminChatSearchInput" placeholder="Поиск диалогов...">
+          </div>
+          <div class="admin-dialogs-list" id="adminDialogsList"></div>
+        </div>
+        
+        <!-- Окно чата -->
+        <div class="admin-chat-window" id="adminChatWindow" style="display: none;">
+          <div class="admin-chat-header">
+            <button class="back-to-list" id="backToAdminChatListBtn">
+              <i class="fas fa-arrow-left"></i>
+            </button>
+            <div class="admin-chat-partner">
+              <i class="fas fa-user-circle"></i>
+              <span id="adminChatPartnerName">Пользователь</span>
+            </div>
+          </div>
+          <div class="admin-chat-messages" id="adminChatMessagesArea">
+            <div class="empty-messages">
+              <i class="fas fa-comment-dots"></i>
+              <p>Выберите чат для начала общения</p>
+            </div>
+          </div>
+          <div class="admin-chat-input">
+            <input type="text" id="adminChatMessageInput" placeholder="Введите сообщение...">
+            <button id="sendAdminChatMsgBtn"><i class="fas fa-paper-plane"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- ===== 5. УПРАВЛЕНИЕ ТОВАРАМИ (АДМИН) ===== -->
+    <div id="adminProductsSection" class="admin-section" style="display: none;">
+      <div class="admin-card">
+        <h3><i class="fas fa-plus-circle"></i> Создать товар (админ)</h3>
         <div class="form-group">
-          <input type="text" id="newGameImageUrl" class="input-modern" placeholder="URL фото" oninput="previewGameImage(this)">
+          <select id="postKeyword" class="input-modern">
+            <option value="">Выберите ключевое слово/категорию</option>
+          </select>
         </div>
-        <div id="imagePreview" style="display: none; margin-top: 8px; text-align: center;">
-          <div class="small-text" style="margin-bottom: 8px;">📷 Предпросмотр:</div>
-          <img id="previewImg" style="width: 80px; height: 80px; border-radius: 16px; object-fit: cover; border: 2px solid var(--accent-primary);">
-        </div>
-        <button class="btn-glow" onclick="addGameBlock()">➕ Добавить блок</button>
-      </div>
-    </div>
-    
-    <!-- Ключевые слова -->
-    <div class="admin-card">
-      <h3><i class="fas fa-tags"></i> Ключевые слова (категории)</h3>
-      <div class="keywords-list" id="keywordsList"></div>
-      <div class="add-keyword-form">
-        <input type="text" id="newKeyword" placeholder="Новое ключевое слово" class="input-modern">
-        <input type="text" id="keywordType" placeholder="Тип подписки" class="input-modern">
-        <button class="btn-glow" onclick="addKeyword()">➕ Добавить ключевое слово</button>
-      </div>
-    </div>
-    
-    <!-- Создать товар (админ) -->
-    <div class="admin-card">
-      <h3><i class="fas fa-plus-circle"></i> Создать товар (админ)</h3>
-      <div class="form-group">
-        <select id="postKeyword" class="input-modern">
-          <option value="">Выберите ключевое слово/категорию</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <input type="text" id="postType" placeholder="Тип подписки" class="input-modern">
-      </div>
-      <div class="form-group">
-        <input type="text" id="postTitle" placeholder="Название товара" class="input-modern">
-      </div>
-      <div class="form-group">
-        <input type="text" id="postPrice" placeholder="Цена" class="input-modern">
-      </div>
-      <div class="form-group">
-        <input type="text" id="postDiscount" placeholder="Скидка" class="input-modern">
-      </div>
-      <div class="form-group">
-        <textarea id="postDescription" placeholder="Описание товара" rows="4" class="input-modern"></textarea>
-      </div>
-      <div class="form-group">
-        <input type="text" id="postImageUrl" placeholder="URL фото" class="input-modern">
-      </div>
-      <div class="form-group">
-        <input type="text" id="postSeller" placeholder="Продавец" class="input-modern">
-      </div>
-      <button class="btn-glow" onclick="createAdminProduct()">📦 Опубликовать товар</button>
-    </div>
-    
-    <!-- Управление товарами -->
-    <div class="admin-card">
-      <h3><i class="fas fa-list"></i> Управление товарами</h3>
-      <div class="admin-products-list" id="adminProductsList"></div>
-    </div>
-    
-    <!-- Блоки приложений -->
-    <div class="admin-card">
-      <h3><i class="fas fa-mobile-alt"></i> Управление блоками приложений</h3>
-      <div class="games-blocks-list" id="appsBlocksList"></div>
-      <div class="add-game-block-form">
-        <input type="text" id="newAppName" placeholder="Название приложения" class="input-modern">
-        <select id="newAppKeyword" class="input-modern">
-          <option value="">Выберите ключевое слово</option>
-        </select>
-        <select id="newAppIcon" class="input-modern">
-          <option value="fab fa-telegram">📱 Telegram</option>
-          <option value="fab fa-whatsapp">📱 WhatsApp</option>
-          <option value="fab fa-instagram">📸 Instagram</option>
-          <option value="fab fa-tiktok">🎵 TikTok</option>
-          <option value="fab fa-youtube">📺 YouTube</option>
-          <option value="fab fa-spotify">🎵 Spotify</option>
-          <option value="fas fa-tv">📺 Netflix</option>
-          <option value="fab fa-discord">💬 Discord</option>
-          <option value="fab fa-android">🤖 Android</option>
-          <option value="fab fa-apple">🍎 Apple</option>
-        </select>
         <div class="form-group">
-          <input type="text" id="newAppImageUrl" class="input-modern" placeholder="URL фото" oninput="previewAppImage(this)">
+          <input type="text" id="postType" placeholder="Тип подписки" class="input-modern">
         </div>
-        <div id="appImagePreview" style="display: none; margin-top: 8px; text-align: center;">
-          <div class="small-text">📷 Предпросмотр:</div>
-          <img id="appPreviewImg" style="width: 80px; height: 80px; border-radius: 16px; object-fit: cover; border: 2px solid var(--accent-primary);">
+        <div class="form-group">
+          <input type="text" id="postTitle" placeholder="Название товара" class="input-modern">
         </div>
-        <button class="btn-glow" onclick="addAppBlock()">➕ Добавить блок приложения</button>
+        <div class="form-group">
+          <input type="text" id="postPrice" placeholder="Цена" class="input-modern">
+        </div>
+        <div class="form-group">
+          <input type="text" id="postDiscount" placeholder="Скидка (например: 20% или 100₽)" class="input-modern">
+        </div>
+        <div class="form-group">
+          <textarea id="postDescription" placeholder="Описание товара" rows="4" class="input-modern"></textarea>
+        </div>
+        <div class="form-group">
+          <input type="text" id="postImageUrl" placeholder="URL фото" class="input-modern">
+        </div>
+        <div class="form-group">
+          <input type="text" id="postSeller" placeholder="Продавец" class="input-modern">
+        </div>
+        <button class="btn-glow" onclick="createAdminProduct()">
+          <i class="fas fa-check-circle"></i> Опубликовать товар
+        </button>
+      </div>
+      
+      <div class="admin-card">
+        <h3><i class="fas fa-list"></i> Управление товарами</h3>
+        <div class="admin-products-list" id="adminProductsList"></div>
+      </div>
+    </div>
+    
+    <!-- ===== 6. УПРАВЛЕНИЕ БЛОКАМИ ИГР ===== -->
+    <div id="adminGamesSection" class="admin-section" style="display: none;">
+      <div class="admin-card">
+        <h3><i class="fas fa-gamepad"></i> Управление блоками игр</h3>
+        <div class="games-blocks-list" id="gamesBlocksList"></div>
+        <div class="add-game-block-form">
+          <h4>➕ Добавить новый блок</h4>
+          <input type="text" id="newGameName" placeholder="Название игры/блока" class="input-modern">
+          <select id="newGameKeyword" class="input-modern">
+            <option value="">Без привязки к ключевому слову</option>
+          </select>
+          <select id="newGameIcon" class="input-modern">
+            <option value="fas fa-gamepad">🎮 Gamepad</option>
+            <option value="fab fa-steam">🎮 Steam</option>
+            <option value="fab fa-discord">💬 Discord</option>
+            <option value="fas fa-crown">👑 Premium</option>
+            <option value="fas fa-crosshairs">🎯 Valorant</option>
+            <option value="fas fa-cube">🧱 Minecraft</option>
+            <option value="fas fa-skull">💀 CS</option>
+            <option value="fas fa-tree">🌲 Rust</option>
+            <option value="fas fa-plane">✈️ PUBG</option>
+            <option value="fas fa-dragon">🐉 Crimson Desert</option>
+            <option value="fas fa-tank">🚀 Танки</option>
+          </select>
+          <input type="text" id="newGameImageUrl" class="input-modern" placeholder="URL фото (необязательно)">
+          <button class="btn-glow" onclick="addGameBlock()">
+            <i class="fas fa-plus"></i> Добавить блок
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- ===== 7. УПРАВЛЕНИЕ БЛОКАМИ ПРИЛОЖЕНИЙ ===== -->
+    <div id="adminAppsSection" class="admin-section" style="display: none;">
+      <div class="admin-card">
+        <h3><i class="fas fa-mobile-alt"></i> Управление блоками приложений</h3>
+        <div class="games-blocks-list" id="appsBlocksList"></div>
+        <div class="add-game-block-form">
+          <h4>➕ Добавить новое приложение</h4>
+          <input type="text" id="newAppName" placeholder="Название приложения" class="input-modern">
+          <select id="newAppKeyword" class="input-modern">
+            <option value="">Без привязки к ключевому слову</option>
+          </select>
+          <select id="newAppIcon" class="input-modern">
+            <option value="fab fa-telegram">📱 Telegram</option>
+            <option value="fab fa-whatsapp">📱 WhatsApp</option>
+            <option value="fab fa-instagram">📸 Instagram</option>
+            <option value="fab fa-tiktok">🎵 TikTok</option>
+            <option value="fab fa-youtube">📺 YouTube</option>
+            <option value="fab fa-spotify">🎵 Spotify</option>
+            <option value="fas fa-tv">📺 Netflix</option>
+            <option value="fab fa-discord">💬 Discord</option>
+          </select>
+          <input type="text" id="newAppImageUrl" class="input-modern" placeholder="URL фото (необязательно)">
+          <button class="btn-glow" onclick="addAppBlock()">
+            <i class="fas fa-plus"></i> Добавить блок
+          </button>
+        </div>
       </div>
     </div>
   </div>
 </div>
-
+<!-- ===== УПРАВЛЕНИЕ КЛЮЧЕВЫМИ СЛОВАМИ ===== -->
+<div id="adminKeywordsSection" class="admin-section" style="display: none;">
+  <div class="admin-card">
+    <h3><i class="fas fa-tags"></i> Управление ключевыми словами (категориями)</h3>
+    <div class="keywords-list" id="keywordsList"></div>
+    <div class="add-keyword-form">
+      <h4>➕ Добавить ключевое слово</h4>
+      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <input type="text" id="newKeywordName" class="input-modern" placeholder="Название (например: Steam, Discord)" style="flex: 1;">
+        <input type="text" id="newKeywordType" class="input-modern" placeholder="Тип (например: Premium, Nitro)" style="flex: 1;">
+        <button class="btn-glow" onclick="addKeyword()">
+          <i class="fas fa-plus"></i> Добавить
+        </button>
+      </div>
+      <p class="help-text">Ключевые слова используются для категоризации товаров и привязки блоков игр/приложений</p>
+    </div>
+  </div>
+</div>
+<!-- МОДАЛЬНОЕ ОКНО ДЛЯ РЕДАКТОРА СЛАЙДЕРОВ -->
+<div id="sliderEditorModal" class="modal-glass">
+  <div class="modal-content" style="max-width: 800px; max-height: 80vh; overflow-y: auto;">
+    <h3><i class="fas fa-images"></i> Редактор слайдеров</h3>
+    <p class="help-text">Редактируйте изображения в карусели на главной странице</p>
+    <div id="sliderEditorContent"></div>
+    <div class="modal-actions" style="margin-top: 20px;">
+      <button class="btn-glow" onclick="closeSliderEditor()">Закрыть</button>
+    </div>
+  </div>
+</div>
 <!-- ==================== ДЕТАЛЬНАЯ КАРТОЧКА ТОВАРА ==================== -->
 <div id="detailPage" class="detail-page">
   <div class="detail-header">

@@ -1,24 +1,699 @@
-// Админ панель
+// admin.js - ПОЛНАЯ АДМИН-ПАНЕЛЬ (С КЛЮЧЕВЫМИ СЛОВАМИ)
+
 let keywords = [];
 let gameBlocks = [];
-let isAdmin = false;
 let appBlocks = [];
+let admins = [];
+let pendingProducts = [];
+let adminCurrentDialogId = null;
+let adminDialogs = [];
+
 const ADMIN_PASSWORD = "admin123";
 
-// Обновите функцию initAdmin, добавив вызов loadAppBlocks()
+// ИНИЦИАЛИЗАЦИЯ
 function initAdmin() {
+  console.log("initAdmin started");
+  loadAdmins();
   loadKeywords();
   loadGameBlocks();
-  loadAppBlocks(); // Добавьте эту строку
+  loadAppBlocks();
+  loadPendingProducts();
+  loadAdminDialogs();
   loadAdminProducts();
   updateKeywordSelect();
   updateGameKeywordSelect();
-  updateAppKeywordSelect(); // Добавьте эту строку
+  updateAppKeywordSelect();
   renderGamesBlocks();
-  renderAppsBlocks(); // Добавьте эту строку
+  renderAppsBlocks();
+  renderAdminsList();
+  renderPendingProductsList();
+  renderAdminDialogsList();
+  setupAdminChatListeners();
+  renderAdminNavButtons();
+  updateAdminStats();
+  renderKeywords(); // <-- ДОБАВЛЕНО: отрисовка ключевых слов
 }
 
-// Загрузка блоков игр
+function updateAdminStats() {
+  const products = JSON.parse(localStorage.getItem("apex_products") || "[]");
+  const productsCount = document.getElementById("adminProductsCount");
+  if (productsCount) productsCount.innerText = products.length;
+  
+  const pendingCount = document.getElementById("adminPendingCount");
+  if (pendingCount) pendingCount.innerText = pendingProducts.length;
+  
+  const adminsCount = document.getElementById("adminAdminsCount");
+  if (adminsCount) adminsCount.innerText = admins.length;
+  
+  const dialogsCount = document.getElementById("adminDialogsCount");
+  if (dialogsCount) dialogsCount.innerText = adminDialogs.length;
+}
+
+// ==================== 1. НАЙМ АДМИНОВ ====================
+
+function loadAdmins() {
+  const stored = localStorage.getItem("apex_admins");
+  if (stored) {
+    admins = JSON.parse(stored);
+  } else {
+    admins = [
+      { id: "admin_1", username: "Admin", isOwner: true, hiredBy: "system", hiredAt: new Date().toISOString() }
+    ];
+    localStorage.setItem("apex_admins", JSON.stringify(admins));
+  }
+}
+
+function saveAdmins() {
+  localStorage.setItem("apex_admins", JSON.stringify(admins));
+}
+
+function renderAdminsList() {
+  const container = document.getElementById("adminsList");
+  if (!container) return;
+  
+  if (admins.length === 0) {
+    container.innerHTML = '<div class="empty-state">Нет администраторов</div>';
+    return;
+  }
+  
+  container.innerHTML = admins.map(admin => `
+    <div class="admin-user-item">
+      <div class="admin-user-info">
+        <div class="admin-user-avatar">
+          <i class="fas fa-user-shield"></i>
+        </div>
+        <div>
+          <div class="admin-user-name">
+            ${escapeHtml(admin.username)}
+            ${admin.isOwner ? '<span class="owner-badge">👑 Владелец</span>' : '<span class="admin-badge">Админ</span>'}
+          </div>
+          <div class="admin-user-date">Назначен: ${new Date(admin.hiredAt).toLocaleDateString()}</div>
+          ${admin.hiredBy && !admin.isOwner ? `<div class="admin-user-hiredby">Назначен: ${escapeHtml(admin.hiredBy)}</div>` : ''}
+        </div>
+      </div>
+      ${!admin.isOwner ? `
+        <div class="admin-user-actions">
+          <button class="delete-admin-btn" onclick="fireAdmin('${admin.id}')">
+            <i class="fas fa-user-minus"></i> Уволить
+          </button>
+        </div>
+      ` : ''}
+    </div>
+  `).join('');
+}
+
+function hireAdmin() {
+  const username = document.getElementById("newAdminUsername")?.value.trim();
+  if (!username) {
+    showToast("Введите никнейм пользователя", "error");
+    return;
+  }
+  
+  if (admins.find(a => a.username === username)) {
+    showToast("Этот пользователь уже является администратором", "error");
+    return;
+  }
+  
+  const currentAdmin = admins.find(a => a.username === (localStorage.getItem("apex_user") || "Admin"));
+  const newAdmin = {
+    id: "admin_" + Date.now(),
+    username: username,
+    isOwner: false,
+    hiredBy: currentAdmin?.username || "System",
+    hiredAt: new Date().toISOString()
+  };
+  
+  admins.push(newAdmin);
+  saveAdmins();
+  renderAdminsList();
+  updateAdminStats();
+  
+  document.getElementById("newAdminUsername").value = "";
+  showToast(`✅ ${username} назначен администратором!`, "success");
+}
+
+function fireAdmin(adminId) {
+  const admin = admins.find(a => a.id === adminId);
+  if (!admin) return;
+  
+  const currentUser = localStorage.getItem("apex_user") || "Admin";
+  const currentAdmin = admins.find(a => a.username === currentUser);
+  
+  if (!currentAdmin || (!currentAdmin.isOwner && currentAdmin.username !== admin.hiredBy)) {
+    showToast("У вас нет прав для увольнения этого администратора", "error");
+    return;
+  }
+  
+  if (confirm(`Уволить администратора ${admin.username}?`)) {
+    admins = admins.filter(a => a.id !== adminId);
+    saveAdmins();
+    renderAdminsList();
+    updateAdminStats();
+    showToast(`✅ ${admin.username} уволен`, "success");
+  }
+}
+
+function isUserAdmin(username) {
+  return admins.some(a => a.username === username);
+}
+
+// ==================== 2. МОДЕРАЦИЯ ТОВАРОВ ====================
+
+function loadPendingProducts() {
+  const stored = localStorage.getItem("apex_pending_products");
+  if (stored) {
+    pendingProducts = JSON.parse(stored);
+  } else {
+    pendingProducts = [];
+    localStorage.setItem("apex_pending_products", JSON.stringify(pendingProducts));
+  }
+  renderPendingProductsList();
+}
+
+function savePendingProducts() {
+  localStorage.setItem("apex_pending_products", JSON.stringify(pendingProducts));
+}
+
+function renderPendingProductsList() {
+  const container = document.getElementById("pendingProductsList");
+  if (!container) return;
+  
+  if (pendingProducts.length === 0) {
+    container.innerHTML = '<div class="empty-state"><i class="fas fa-check-circle"></i> Нет товаров на модерации</div>';
+    return;
+  }
+  
+  container.innerHTML = pendingProducts.map(product => `
+    <div class="pending-product-item">
+      <div class="pending-product-img">
+        <img src="${escapeHtml(product.imageUrl || 'https://picsum.photos/id/42/50/50')}" alt="">
+      </div>
+      <div class="pending-product-info">
+        <div class="pending-product-title">${escapeHtml(product.title)}</div>
+        <div class="pending-product-price">${escapeHtml(product.price)}</div>
+        <div class="pending-product-seller">Продавец: ${escapeHtml(product.seller)}</div>
+        <div class="pending-product-date">Создан: ${new Date(product.createdAt).toLocaleString()}</div>
+      </div>
+      <div class="pending-product-actions">
+        <button class="approve-product-btn" onclick="approveProduct('${product.id}')">
+          <i class="fas fa-check"></i> Одобрить
+        </button>
+        <button class="reject-product-btn" onclick="rejectProduct('${product.id}')">
+          <i class="fas fa-times"></i> Отклонить
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function approveProduct(productId) {
+  const product = pendingProducts.find(p => p.id === productId);
+  if (!product) return;
+  
+  delete product.isPending;
+  
+  let products = JSON.parse(localStorage.getItem("apex_products") || "[]");
+  products.unshift(product);
+  localStorage.setItem("apex_products", JSON.stringify(products));
+  
+  pendingProducts = pendingProducts.filter(p => p.id !== productId);
+  savePendingProducts();
+  renderPendingProductsList();
+  updateAdminStats();
+  
+  if (window.productsArray) {
+    window.productsArray = products;
+    if (typeof filterProducts === 'function') filterProducts();
+  }
+  
+  sendModerationNotification(product.seller, product.title, true);
+  showToast(`✅ Товар "${product.title}" одобрен!`, "success");
+}
+
+function rejectProduct(productId) {
+  const product = pendingProducts.find(p => p.id === productId);
+  if (!product) return;
+  
+  const reason = prompt("Укажите причину отклонения (необязательно):");
+  
+  pendingProducts = pendingProducts.filter(p => p.id !== productId);
+  savePendingProducts();
+  renderPendingProductsList();
+  updateAdminStats();
+  
+  sendModerationNotification(product.seller, product.title, false, reason);
+  showToast(`❌ Товар "${product.title}" отклонен`, "warning");
+}
+
+function sendModerationNotification(sellerName, productTitle, approved, reason = "") {
+  let dialog = adminDialogs.find(d => d.userName === sellerName);
+  
+  if (!dialog) {
+    dialog = {
+      id: "admin_dialog_" + Date.now(),
+      userName: sellerName,
+      userId: sellerName,
+      messages: [],
+      lastMessageTime: new Date().toISOString()
+    };
+    adminDialogs.unshift(dialog);
+  }
+  
+  const messageText = approved 
+    ? `✅ Ваш товар "${productTitle}" прошел модерацию и опубликован!`
+    : `❌ Ваш товар "${productTitle}" отклонен модерацией.${reason ? `\nПричина: ${reason}` : ""}\nВы можете отредактировать товар и отправить на повторную модерацию.`;
+  
+  dialog.messages.push({
+    sender: "support",
+    text: messageText,
+    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    timestamp: new Date().toISOString()
+  });
+  dialog.lastMessageTime = new Date().toISOString();
+  
+  saveAdminDialogs();
+  renderAdminDialogsList();
+}
+
+// ==================== 3. РЕДАКТИРОВАНИЕ СЛАЙДЕРОВ ====================
+
+function openSliderEditor() {
+  const modal = document.getElementById("sliderEditorModal");
+  if (modal) {
+    renderSliderEditorContent();
+    modal.classList.add("active");
+  }
+}
+
+function closeSliderEditor() {
+  const modal = document.getElementById("sliderEditorModal");
+  if (modal) modal.classList.remove("active");
+}
+
+function renderSliderEditorContent() {
+  const container = document.getElementById("sliderEditorContent");
+  if (!container) return;
+  
+  const sliders = document.querySelectorAll('.mini-slider');
+  const slidesData = [];
+  
+  sliders.forEach((slider, index) => {
+    const images = slider.querySelectorAll('.mini-slide-img');
+    const imageUrls = Array.from(images).map(img => img.src);
+    slidesData.push({
+      index: index,
+      images: imageUrls
+    });
+  });
+  
+  if (slidesData.length === 0) {
+    container.innerHTML = '<div class="empty-state">Слайды не найдены</div>';
+    return;
+  }
+  
+  container.innerHTML = slidesData.map(slide => `
+    <div class="slider-editor-card">
+      <div class="slider-editor-header">
+        <h4>Слайд ${slide.index + 1}</h4>
+        <button class="add-slide-image-btn" onclick="addSlideImage(${slide.index})">
+          <i class="fas fa-plus"></i> Добавить изображение
+        </button>
+      </div>
+      <div class="slider-editor-images" id="sliderEditorImages_${slide.index}">
+        ${slide.images.map((img, imgIndex) => `
+          <div class="slider-image-item">
+            <img src="${escapeHtml(img)}" alt="slide ${imgIndex + 1}">
+            <div class="slider-image-actions">
+              <input type="text" class="image-url-input" value="${escapeHtml(img)}" 
+                     onchange="updateSlideImage(${slide.index}, ${imgIndex}, this.value)">
+              <button class="remove-image-btn" onclick="removeSlideImage(${slide.index}, ${imgIndex})">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function addSlideImage(sliderIndex) {
+  const newUrl = prompt("Введите URL изображения:");
+  if (!newUrl) return;
+  
+  const slider = document.querySelector(`.mini-slider[data-slider="${sliderIndex}"]`);
+  if (slider) {
+    const imagesContainer = slider.querySelector('.mini-slider-images');
+    const newImg = document.createElement('img');
+    newImg.className = 'mini-slide-img';
+    newImg.src = newUrl;
+    newImg.alt = `slide ${imagesContainer.children.length + 1}`;
+    imagesContainer.appendChild(newImg);
+    
+    const dotsContainer = slider.querySelector('.mini-slider-dots');
+    if (dotsContainer) {
+      const newDot = document.createElement('div');
+      newDot.className = 'mini-dot';
+      dotsContainer.appendChild(newDot);
+    }
+    
+    if (typeof initMiniSliders === 'function') {
+      initMiniSliders();
+    }
+  }
+  
+  renderSliderEditorContent();
+  showToast("Изображение добавлено!", "success");
+}
+
+function updateSlideImage(sliderIndex, imageIndex, newUrl) {
+  if (!newUrl) return;
+  
+  const slider = document.querySelector(`.mini-slider[data-slider="${sliderIndex}"]`);
+  if (slider) {
+    const images = slider.querySelectorAll('.mini-slide-img');
+    if (images[imageIndex]) {
+      images[imageIndex].src = newUrl;
+    }
+  }
+  
+  showToast("Изображение обновлено!", "success");
+}
+
+function removeSlideImage(sliderIndex, imageIndex) {
+  if (confirm("Удалить это изображение?")) {
+    const slider = document.querySelector(`.mini-slider[data-slider="${sliderIndex}"]`);
+    if (slider) {
+      const images = slider.querySelectorAll('.mini-slide-img');
+      const dots = slider.querySelectorAll('.mini-dot');
+      
+      if (images[imageIndex]) {
+        images[imageIndex].remove();
+        if (dots[imageIndex]) dots[imageIndex].remove();
+      }
+      
+      if (typeof initMiniSliders === 'function') {
+        initMiniSliders();
+      }
+    }
+    
+    renderSliderEditorContent();
+    showToast("Изображение удалено!", "success");
+  }
+}
+
+// ==================== 4. ЧАТ ПОДДЕРЖКИ ====================
+
+function loadAdminDialogs() {
+  const stored = localStorage.getItem("apex_admin_dialogs");
+  if (stored) {
+    adminDialogs = JSON.parse(stored);
+  } else {
+    adminDialogs = [
+      {
+        id: "admin_dialog_1",
+        userName: "Гость",
+        userId: "guest",
+        messages: [
+          {
+            sender: "guest",
+            text: "Здравствуйте! У меня проблема с оплатой",
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            timestamp: new Date(Date.now() - 3600000).toISOString()
+          }
+        ],
+        lastMessageTime: new Date(Date.now() - 3600000).toISOString()
+      }
+    ];
+    saveAdminDialogs();
+  }
+  renderAdminDialogsList();
+  updateAdminStats();
+}
+
+function saveAdminDialogs() {
+  localStorage.setItem("apex_admin_dialogs", JSON.stringify(adminDialogs));
+}
+
+function renderAdminDialogsList(searchTerm = '') {
+  const container = document.getElementById("adminDialogsList");
+  if (!container) return;
+  
+  let filtered = adminDialogs;
+  if (searchTerm) {
+    filtered = adminDialogs.filter(d => d.userName.toLowerCase().includes(searchTerm.toLowerCase()));
+  }
+  
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty-dialogs"><i class="fas fa-comments"></i><p>Нет диалогов</p></div>';
+    return;
+  }
+  
+  container.innerHTML = filtered.map(dialog => {
+    const lastMsg = dialog.messages[dialog.messages.length - 1];
+    const preview = lastMsg ? (lastMsg.sender === "support" ? "Поддержка: " + lastMsg.text : lastMsg.text) : "Нет сообщений";
+    const shortPreview = preview.length > 40 ? preview.substring(0, 40) + '...' : preview;
+    const hasUnread = dialog.messages.some(m => m.sender !== "support" && !m.read);
+    
+    return `
+      <div class="admin-dialog-item ${adminCurrentDialogId === dialog.id ? 'active' : ''}" 
+           onclick="openAdminDialog('${dialog.id}')">
+        <div class="admin-dialog-avatar">
+          <i class="fas fa-user-circle"></i>
+          ${hasUnread ? '<span class="unread-badge"></span>' : ''}
+        </div>
+        <div class="admin-dialog-info">
+          <div class="admin-dialog-name">${escapeHtml(dialog.userName)}</div>
+          <div class="admin-dialog-preview">${escapeHtml(shortPreview)}</div>
+        </div>
+        <div class="admin-dialog-time">
+          ${lastMsg ? lastMsg.time : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openAdminDialog(dialogId) {
+  const dialog = adminDialogs.find(d => d.id === dialogId);
+  if (!dialog) return;
+  
+  adminCurrentDialogId = dialogId;
+  
+  dialog.messages.forEach(m => {
+    if (m.sender !== "support") m.read = true;
+  });
+  saveAdminDialogs();
+  
+  const sidebar = document.getElementById("adminChatSidebar");
+  const chatWindow = document.getElementById("adminChatWindow");
+  
+  if (sidebar) sidebar.classList.add("hide");
+  if (chatWindow) {
+    chatWindow.style.display = "flex";
+    chatWindow.classList.add("active");
+  }
+  
+  const partnerName = document.getElementById("adminChatPartnerName");
+  if (partnerName) partnerName.textContent = dialog.userName;
+  
+  renderAdminMessages(dialogId);
+  renderAdminDialogsList();
+}
+
+function closeAdminChat() {
+  const sidebar = document.getElementById("adminChatSidebar");
+  const chatWindow = document.getElementById("adminChatWindow");
+  
+  if (sidebar) sidebar.classList.remove("hide");
+  if (chatWindow) {
+    chatWindow.style.display = "none";
+    chatWindow.classList.remove("active");
+  }
+  adminCurrentDialogId = null;
+}
+
+function renderAdminMessages(dialogId) {
+  const dialog = adminDialogs.find(d => d.id === dialogId);
+  const area = document.getElementById("adminChatMessagesArea");
+  if (!area || !dialog) return;
+  
+  if (dialog.messages.length === 0) {
+    area.innerHTML = '<div class="empty-messages"><i class="fas fa-comment-dots"></i><p>Нет сообщений</p></div>';
+    return;
+  }
+  
+  let html = '';
+  let lastDate = null;
+  
+  dialog.messages.forEach((msg) => {
+    const isOut = msg.sender === "support";
+    const msgDate = new Date(msg.timestamp);
+    const today = new Date();
+    const isToday = msgDate.toDateString() === today.toDateString();
+    
+    if (lastDate !== msgDate.toDateString()) {
+      lastDate = msgDate.toDateString();
+      const dateStr = isToday ? 'Сегодня' : msgDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+      html += `<div class="date-divider"><span>${dateStr}</span></div>`;
+    }
+    
+    let messageText = escapeHtml(msg.text);
+    messageText = messageText.replace(/\n/g, '<br>');
+    
+    html += `
+      <div class="message-group ${isOut ? 'outgoing' : 'incoming'}">
+        <div class="message-content">
+          <div class="message-bubble ${isOut ? 'out' : 'in'}">
+            ${messageText}
+          </div>
+          <div class="message-time">${msg.time}</div>
+        </div>
+      </div>
+    `;
+  });
+  
+  area.innerHTML = html;
+  area.scrollTop = area.scrollHeight;
+}
+
+function sendAdminMessage() {
+  const input = document.getElementById("adminChatMessageInput");
+  const text = input.value.trim();
+  if (!text || !adminCurrentDialogId) return;
+  
+  const dialogIndex = adminDialogs.findIndex(d => d.id === adminCurrentDialogId);
+  if (dialogIndex === -1) return;
+  
+  const now = new Date();
+  const newMsg = {
+    sender: "support",
+    text: text,
+    time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    timestamp: now.toISOString()
+  };
+  
+  adminDialogs[dialogIndex].messages.push(newMsg);
+  adminDialogs[dialogIndex].lastMessageTime = now.toISOString();
+  saveAdminDialogs();
+  
+  renderAdminMessages(adminCurrentDialogId);
+  renderAdminDialogsList();
+  input.value = "";
+  
+  syncMessageToUserChat(adminDialogs[dialogIndex].userName, text);
+}
+
+function syncMessageToUserChat(userName, messageText) {
+  let dialogs = JSON.parse(localStorage.getItem("apex_dialogs") || "[]");
+  let userDialog = dialogs.find(d => d.name === userName);
+  
+  if (!userDialog) {
+    userDialog = {
+      id: "user_" + Date.now(),
+      name: userName,
+      avatar: "👤",
+      messages: []
+    };
+    dialogs.push(userDialog);
+  }
+  
+  userDialog.messages.push({
+    user: "Support",
+    text: messageText,
+    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    timestamp: new Date().toISOString()
+  });
+  
+  localStorage.setItem("apex_dialogs", JSON.stringify(dialogs));
+}
+
+function setupAdminChatListeners() {
+  const sendBtn = document.getElementById("sendAdminChatMsgBtn");
+  const msgInput = document.getElementById("adminChatMessageInput");
+  const searchInput = document.getElementById("adminChatSearchInput");
+  const backBtn = document.getElementById("backToAdminChatListBtn");
+  
+  if (sendBtn) {
+    const newBtn = sendBtn.cloneNode(true);
+    sendBtn.parentNode.replaceChild(newBtn, sendBtn);
+    newBtn.onclick = sendAdminMessage;
+  }
+  
+  if (msgInput) {
+    msgInput.onkeypress = (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        sendAdminMessage();
+      }
+    };
+  }
+  
+  if (searchInput) {
+    searchInput.oninput = (e) => {
+      renderAdminDialogsList(e.target.value);
+    };
+  }
+  
+  if (backBtn) {
+    const newBackBtn = backBtn.cloneNode(true);
+    backBtn.parentNode.replaceChild(newBackBtn, backBtn);
+    newBackBtn.onclick = closeAdminChat;
+  }
+}
+
+// ==================== 5. КНОПОЧНАЯ НАВИГАЦИЯ ====================
+
+function renderAdminNavButtons() {
+  const container = document.getElementById("adminNavButtons");
+  if (!container) return;
+  
+  const sections = [
+    { id: "adminMainSection", name: "📊 Главная", icon: "fa-tachometer-alt" },
+    { id: "adminAdminsSection", name: "👥 Администраторы", icon: "fa-users" },
+    { id: "adminKeywordsSection", name: "🏷️ Ключевые слова", icon: "fa-tags" }, // <-- ДОБАВЛЕНО
+    { id: "adminModerationSection", name: "📝 Модерация", icon: "fa-clipboard-list" },
+    { id: "adminSlidersSection", name: "🖼️ Слайдеры", icon: "fa-images" },
+    { id: "adminChatSection", name: "💬 Чат поддержки", icon: "fa-headset" },
+    { id: "adminProductsSection", name: "📦 Товары", icon: "fa-box" },
+    { id: "adminGamesSection", name: "🎮 Игры", icon: "fa-gamepad" },
+    { id: "adminAppsSection", name: "📱 Приложения", icon: "fa-mobile-alt" }
+  ];
+  
+  container.innerHTML = sections.map(section => `
+    <button class="admin-nav-btn" onclick="showAdminSection('${section.id}')">
+      <i class="fas ${section.icon}"></i> <span>${section.name}</span>
+    </button>
+  `).join('');
+}
+
+function showAdminSection(sectionId) {
+  const sections = [
+    "adminMainSection", "adminAdminsSection", "adminKeywordsSection",
+    "adminModerationSection", "adminSlidersSection", "adminChatSection", 
+    "adminProductsSection", "adminGamesSection", "adminAppsSection"
+  ];
+  
+  sections.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "none";
+  });
+  
+  const target = document.getElementById(sectionId);
+  if (target) target.style.display = "block";
+  
+  document.querySelectorAll('.admin-nav-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  
+  const activeBtn = Array.from(document.querySelectorAll('.admin-nav-btn')).find(
+    btn => btn.getAttribute('onclick')?.includes(sectionId)
+  );
+  if (activeBtn) activeBtn.classList.add('active');
+}
+
+// ==================== 6. БЛОКИ ИГР И ПРИЛОЖЕНИЙ ====================
+
 function loadGameBlocks() {
   const stored = localStorage.getItem("apex_game_blocks");
   if (stored) {
@@ -62,7 +737,7 @@ function renderGamesBlocks() {
         </div>
         <div>
           <div class="game-block-name">${escapeHtml(block.name)}</div>
-          <div class="game-block-keyword">${block.keywordId ? 'Привязан к ключевому слову' : 'Без привязки'}</div>
+          <div class="game-block-keyword">${block.keywordId ? '🔗 Привязан к ключевому слову' : '📌 Без привязки'}</div>
           ${block.imageUrl ? `<div class="game-block-keyword">📷 Фото установлено</div>` : ''}
         </div>
       </div>
@@ -83,34 +758,57 @@ function renderHomeGameBlocks() {
     return;
   }
   
-  // Разделяем игры на два ряда
   const midIndex = Math.ceil(gameBlocks.length / 2);
   const firstRow = gameBlocks.slice(0, midIndex);
   const secondRow = gameBlocks.slice(midIndex);
   
-  const firstRowHtml = firstRow.map(block => `
-    <div class="game-card" data-game="${escapeHtml(block.name)}" onclick="openKeywordPageByBlock('${block.id}')">
-      <div class="game-icon">
-        ${block.imageUrl ? 
-          `<img src="${escapeHtml(block.imageUrl)}" alt="${escapeHtml(block.name)}">` : 
-          `<i class="${block.icon}"></i>`
-        }
+  const firstRowHtml = firstRow.map(block => {
+    let keywordName = block.name;
+    let hasKeyword = false;
+    if (block.keywordId && block.keywordId !== "") {
+      const kw = keywords.find(k => k.id === block.keywordId);
+      if (kw) {
+        keywordName = kw.name;
+        hasKeyword = true;
+      }
+    }
+    return `
+      <div class="game-card" onclick="openKeywordPage('${escapeHtml(keywordName)}')">
+        <div class="game-icon">
+          ${block.imageUrl ? 
+            `<img src="${escapeHtml(block.imageUrl)}" alt="${escapeHtml(block.name)}">` : 
+            `<i class="${block.icon}"></i>`
+          }
+        </div>
+        <div class="game-name">${escapeHtml(block.name)}</div>
+        ${hasKeyword ? `<div class="game-keyword-badge">🔗 ${escapeHtml(keywordName)}</div>` : ''}
       </div>
-      <div class="game-name">${escapeHtml(block.name)}</div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
   
-  const secondRowHtml = secondRow.map(block => `
-    <div class="game-card" data-game="${escapeHtml(block.name)}" onclick="openKeywordPageByBlock('${block.id}')">
-      <div class="game-icon">
-        ${block.imageUrl ? 
-          `<img src="${escapeHtml(block.imageUrl)}" alt="${escapeHtml(block.name)}">` : 
-          `<i class="${block.icon}"></i>`
-        }
+  const secondRowHtml = secondRow.map(block => {
+    let keywordName = block.name;
+    let hasKeyword = false;
+    if (block.keywordId && block.keywordId !== "") {
+      const kw = keywords.find(k => k.id === block.keywordId);
+      if (kw) {
+        keywordName = kw.name;
+        hasKeyword = true;
+      }
+    }
+    return `
+      <div class="game-card" onclick="openKeywordPage('${escapeHtml(keywordName)}')">
+        <div class="game-icon">
+          ${block.imageUrl ? 
+            `<img src="${escapeHtml(block.imageUrl)}" alt="${escapeHtml(block.name)}">` : 
+            `<i class="${block.icon}"></i>`
+          }
+        </div>
+        <div class="game-name">${escapeHtml(block.name)}</div>
+        ${hasKeyword ? `<div class="game-keyword-badge">🔗 ${escapeHtml(keywordName)}</div>` : ''}
       </div>
-      <div class="game-name">${escapeHtml(block.name)}</div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
   
   container.innerHTML = `
     <div class="games-row">${firstRowHtml}</div>
@@ -143,15 +841,12 @@ function addGameBlock() {
   renderHomeGameBlocks();
   updateGameKeywordSelect();
   
-  // Очищаем форму
   document.getElementById("newGameName").value = "";
   document.getElementById("newGameKeyword").value = "";
   document.getElementById("newGameIcon").value = "fas fa-gamepad";
   document.getElementById("newGameImageUrl").value = "";
-  const preview = document.getElementById("imagePreview");
-  if (preview) preview.style.display = "none";
   
-  alert("✅ Блок игры успешно добавлен!");
+  showToast("✅ Блок игры добавлен!", "success");
 }
 
 function deleteGameBlock(id) {
@@ -160,7 +855,7 @@ function deleteGameBlock(id) {
     localStorage.setItem("apex_game_blocks", JSON.stringify(gameBlocks));
     renderGamesBlocks();
     renderHomeGameBlocks();
-    alert("✅ Блок удален");
+    showToast("✅ Блок удален", "success");
   }
 }
 
@@ -172,7 +867,7 @@ function editGameBlock(id) {
   if (newName && newName.trim()) {
     block.name = newName.trim();
     
-    const newImageUrl = prompt("Введите URL нового фото (оставьте пустым для использования иконки):\n\nТекущее фото: " + (block.imageUrl || "не установлено"), block.imageUrl || "");
+    const newImageUrl = prompt("Введите URL нового фото (оставьте пустым для использования иконки):", block.imageUrl || "");
     if (newImageUrl !== null) {
       block.imageUrl = newImageUrl.trim();
     }
@@ -180,36 +875,194 @@ function editGameBlock(id) {
     localStorage.setItem("apex_game_blocks", JSON.stringify(gameBlocks));
     renderGamesBlocks();
     renderHomeGameBlocks();
-    alert("✅ Блок обновлен!");
+    showToast("✅ Блок обновлен!", "success");
   }
 }
 
-function updateGameKeywordSelect() {
-  const select = document.getElementById("newGameKeyword");
-  if (!select) return;
-  
-  select.innerHTML = '<option value="">Без привязки к ключевому слову</option>';
-  keywords.forEach(k => {
-    select.innerHTML += `<option value="${escapeHtml(k.id)}">${escapeHtml(k.name)} - ${escapeHtml(k.type)}</option>`;
-  });
-}
-
-function previewGameImage(input) {
-  const preview = document.getElementById("imagePreview");
-  const previewImg = document.getElementById("previewImg");
-  const imageUrl = input.value.trim();
-  
-  if (imageUrl) {
-    previewImg.src = imageUrl;
-    preview.style.display = "block";
-    previewImg.onerror = function() {
-      preview.style.display = "none";
-      alert("Не удалось загрузить изображение по указанному URL. Проверьте ссылку.");
-    };
+function loadAppBlocks() {
+  const stored = localStorage.getItem("apex_app_blocks");
+  if (stored) {
+    appBlocks = JSON.parse(stored);
   } else {
-    preview.style.display = "none";
+    appBlocks = [
+      { id: "app1", name: "Telegram", keywordId: "", icon: "fab fa-telegram", imageUrl: "" },
+      { id: "app2", name: "WhatsApp", keywordId: "", icon: "fab fa-whatsapp", imageUrl: "" },
+      { id: "app3", name: "Instagram", keywordId: "", icon: "fab fa-instagram", imageUrl: "" },
+      { id: "app4", name: "TikTok", keywordId: "", icon: "fab fa-tiktok", imageUrl: "" },
+      { id: "app5", name: "YouTube", keywordId: "", icon: "fab fa-youtube", imageUrl: "" },
+      { id: "app6", name: "Spotify", keywordId: "", icon: "fab fa-spotify", imageUrl: "" },
+      { id: "app7", name: "Netflix", keywordId: "", icon: "fas fa-tv", imageUrl: "" },
+      { id: "app8", name: "Discord", keywordId: "", icon: "fab fa-discord", imageUrl: "" }
+    ];
+    localStorage.setItem("apex_app_blocks", JSON.stringify(appBlocks));
+  }
+  renderAppsBlocks();
+  renderHomeAppBlocks();
+}
+
+function renderAppsBlocks() {
+  const container = document.getElementById("appsBlocksList");
+  if (!container) return;
+  
+  if (appBlocks.length === 0) {
+    container.innerHTML = "<div style='color: var(--text-muted);'>Нет блоков приложений</div>";
+    return;
+  }
+  
+  container.innerHTML = appBlocks.map(block => `
+    <div class="game-block-item">
+      <div class="game-block-info">
+        <div class="game-block-icon">
+          ${block.imageUrl ? 
+            `<img src="${escapeHtml(block.imageUrl)}" alt="${escapeHtml(block.name)}">` : 
+            `<i class="${block.icon}"></i>`
+          }
+        </div>
+        <div>
+          <div class="game-block-name">${escapeHtml(block.name)}</div>
+          <div class="game-block-keyword">${block.keywordId ? '🔗 Привязан к ключевому слову' : '📌 Без привязки'}</div>
+          ${block.imageUrl ? `<div class="game-block-keyword">📷 Фото установлено</div>` : ''}
+        </div>
+      </div>
+      <div class="game-block-actions">
+        <button class="edit-game-btn" onclick="editAppBlock('${block.id}')"><i class="fas fa-edit"></i></button>
+        <button class="delete-game-btn" onclick="deleteAppBlock('${block.id}')"><i class="fas fa-trash"></i></button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderHomeAppBlocks() {
+  const container = document.getElementById("appsScrollWrapper");
+  if (!container) return;
+  
+  if (appBlocks.length === 0) {
+    container.innerHTML = '<div style="color: var(--text-muted); padding: 20px;">Нет блоков</div>';
+    return;
+  }
+  
+  const midIndex = Math.ceil(appBlocks.length / 2);
+  const firstRow = appBlocks.slice(0, midIndex);
+  const secondRow = appBlocks.slice(midIndex);
+  
+  const firstRowHtml = firstRow.map(block => {
+    let keywordName = block.name;
+    let hasKeyword = false;
+    if (block.keywordId && block.keywordId !== "") {
+      const kw = keywords.find(k => k.id === block.keywordId);
+      if (kw) {
+        keywordName = kw.name;
+        hasKeyword = true;
+      }
+    }
+    return `
+      <div class="game-card" onclick="openKeywordPage('${escapeHtml(keywordName)}')">
+        <div class="game-icon">
+          ${block.imageUrl ? 
+            `<img src="${escapeHtml(block.imageUrl)}" alt="${escapeHtml(block.name)}">` : 
+            `<i class="${block.icon}"></i>`
+          }
+        </div>
+        <div class="game-name">${escapeHtml(block.name)}</div>
+        ${hasKeyword ? `<div class="game-keyword-badge">🔗 ${escapeHtml(keywordName)}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+  
+  const secondRowHtml = secondRow.map(block => {
+    let keywordName = block.name;
+    let hasKeyword = false;
+    if (block.keywordId && block.keywordId !== "") {
+      const kw = keywords.find(k => k.id === block.keywordId);
+      if (kw) {
+        keywordName = kw.name;
+        hasKeyword = true;
+      }
+    }
+    return `
+      <div class="game-card" onclick="openKeywordPage('${escapeHtml(keywordName)}')">
+        <div class="game-icon">
+          ${block.imageUrl ? 
+            `<img src="${escapeHtml(block.imageUrl)}" alt="${escapeHtml(block.name)}">` : 
+            `<i class="${block.icon}"></i>`
+          }
+        </div>
+        <div class="game-name">${escapeHtml(block.name)}</div>
+        ${hasKeyword ? `<div class="game-keyword-badge">🔗 ${escapeHtml(keywordName)}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+  
+  container.innerHTML = `
+    <div class="games-row">${firstRowHtml}</div>
+    <div class="games-row-second">${secondRowHtml}</div>
+  `;
+}
+
+function addAppBlock() {
+  const name = document.getElementById("newAppName")?.value.trim();
+  const keywordId = document.getElementById("newAppKeyword")?.value;
+  const icon = document.getElementById("newAppIcon")?.value;
+  const imageUrl = document.getElementById("newAppImageUrl")?.value.trim();
+  
+  if (!name) {
+    alert("Введите название приложения");
+    return;
+  }
+  
+  const newBlock = {
+    id: "app_" + Date.now().toString(),
+    name: name,
+    keywordId: keywordId || "",
+    icon: icon || "fab fa-android",
+    imageUrl: imageUrl || ""
+  };
+  
+  appBlocks.push(newBlock);
+  localStorage.setItem("apex_app_blocks", JSON.stringify(appBlocks));
+  renderAppsBlocks();
+  renderHomeAppBlocks();
+  updateAppKeywordSelect();
+  
+  document.getElementById("newAppName").value = "";
+  document.getElementById("newAppKeyword").value = "";
+  document.getElementById("newAppIcon").value = "fab fa-android";
+  document.getElementById("newAppImageUrl").value = "";
+  
+  showToast("✅ Блок приложения добавлен!", "success");
+}
+
+function deleteAppBlock(id) {
+  if (confirm("Удалить этот блок?")) {
+    appBlocks = appBlocks.filter(b => b.id !== id);
+    localStorage.setItem("apex_app_blocks", JSON.stringify(appBlocks));
+    renderAppsBlocks();
+    renderHomeAppBlocks();
+    showToast("✅ Блок удален", "success");
   }
 }
+
+function editAppBlock(id) {
+  const block = appBlocks.find(b => b.id === id);
+  if (!block) return;
+  
+  const newName = prompt("Введите новое название:", block.name);
+  if (newName && newName.trim()) {
+    block.name = newName.trim();
+    
+    const newImageUrl = prompt("Введите URL нового фото (оставьте пустым для использования иконки):", block.imageUrl || "");
+    if (newImageUrl !== null) {
+      block.imageUrl = newImageUrl.trim();
+    }
+    
+    localStorage.setItem("apex_app_blocks", JSON.stringify(appBlocks));
+    renderAppsBlocks();
+    renderHomeAppBlocks();
+    showToast("✅ Блок обновлен!", "success");
+  }
+}
+
+// ==================== 7. КЛЮЧЕВЫЕ СЛОВА (НОВАЯ ВЕРСИЯ) ====================
 
 function loadKeywords() {
   const stored = localStorage.getItem("apex_keywords");
@@ -226,6 +1079,13 @@ function loadKeywords() {
     localStorage.setItem("apex_keywords", JSON.stringify(keywords));
   }
   renderKeywords();
+  updateKeywordSelect();
+  updateGameKeywordSelect();
+  updateAppKeywordSelect();
+}
+
+function saveKeywords() {
+  localStorage.setItem("apex_keywords", JSON.stringify(keywords));
 }
 
 function renderKeywords() {
@@ -233,27 +1093,34 @@ function renderKeywords() {
   if (!container) return;
   
   if (keywords.length === 0) {
-    container.innerHTML = "<div style='color: var(--text-muted);'>Нет ключевых слов</div>";
+    container.innerHTML = '<div class="empty-state">Нет ключевых слов</div>';
     return;
   }
   
   container.innerHTML = keywords.map(k => `
     <div class="keyword-item">
-      <span class="keyword-name">${escapeHtml(k.name)}</span>
-      <span class="keyword-type">${escapeHtml(k.type)}</span>
-      <button class="delete-keyword-btn" onclick="deleteKeyword('${k.id}')">
-        <i class="fas fa-times"></i>
-      </button>
+      <div class="keyword-info">
+        <span class="keyword-name">${escapeHtml(k.name)}</span>
+        <span class="keyword-type">${escapeHtml(k.type)}</span>
+      </div>
+      <div class="keyword-actions">
+        <button class="edit-keyword-btn" onclick="editKeyword('${k.id}')">
+          <i class="fas fa-edit"></i>
+        </button>
+        <button class="delete-keyword-btn" onclick="deleteKeyword('${k.id}')">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
     </div>
   `).join('');
 }
 
 function addKeyword() {
-  const name = document.getElementById("newKeyword")?.value.trim();
-  const type = document.getElementById("keywordType")?.value.trim();
+  const name = document.getElementById("newKeywordName")?.value.trim();
+  const type = document.getElementById("newKeywordType")?.value.trim();
   
   if (!name) {
-    alert("Введите ключевое слово");
+    showToast("Введите название ключевого слова", "error");
     return;
   }
   
@@ -264,25 +1131,54 @@ function addKeyword() {
   };
   
   keywords.push(newKeyword);
-  localStorage.setItem("apex_keywords", JSON.stringify(keywords));
+  saveKeywords();
   renderKeywords();
   updateKeywordSelect();
   updateGameKeywordSelect();
+  updateAppKeywordSelect();
   
-  document.getElementById("newKeyword").value = "";
-  document.getElementById("keywordType").value = "";
+  if (document.getElementById("newKeywordName")) {
+    document.getElementById("newKeywordName").value = "";
+  }
+  if (document.getElementById("newKeywordType")) {
+    document.getElementById("newKeywordType").value = "";
+  }
   
-  alert("✅ Ключевое слово добавлено!");
+  showToast(`✅ Ключевое слово "${name}" добавлено!`, "success");
 }
 
-function deleteKeyword(id) {
+function editKeyword(keywordId) {
+  const keyword = keywords.find(k => k.id === keywordId);
+  if (!keyword) return;
+  
+  const newName = prompt("Введите новое название:", keyword.name);
+  if (newName && newName.trim()) {
+    keyword.name = newName.trim();
+  }
+  
+  const newType = prompt("Введите новый тип:", keyword.type);
+  if (newType !== null) {
+    keyword.type = newType.trim() || "Стандарт";
+  }
+  
+  saveKeywords();
+  renderKeywords();
+  updateKeywordSelect();
+  updateGameKeywordSelect();
+  updateAppKeywordSelect();
+  
+  showToast(`✅ Ключевое слово обновлено!`, "success");
+}
+
+function deleteKeyword(keywordId) {
   if (confirm("Удалить это ключевое слово? Все товары с ним останутся, но категория пропадёт.")) {
-    keywords = keywords.filter(k => k.id !== id);
-    localStorage.setItem("apex_keywords", JSON.stringify(keywords));
+    keywords = keywords.filter(k => k.id !== keywordId);
+    saveKeywords();
     renderKeywords();
     updateKeywordSelect();
     updateGameKeywordSelect();
-    alert("✅ Ключевое слово удалено");
+    updateAppKeywordSelect();
+    showToast("✅ Ключевое слово удалено", "success");
   }
 }
 
@@ -294,6 +1190,61 @@ function updateKeywordSelect() {
   keywords.forEach(k => {
     select.innerHTML += `<option value="${escapeHtml(k.id)}">${escapeHtml(k.name)} - ${escapeHtml(k.type)}</option>`;
   });
+}
+
+function updateGameKeywordSelect() {
+  const select = document.getElementById("newGameKeyword");
+  if (!select) return;
+  
+  select.innerHTML = '<option value="">Без привязки к ключевому слову</option>';
+  keywords.forEach(k => {
+    select.innerHTML += `<option value="${escapeHtml(k.id)}">${escapeHtml(k.name)} - ${escapeHtml(k.type)}</option>`;
+  });
+}
+
+function updateAppKeywordSelect() {
+  const select = document.getElementById("newAppKeyword");
+  if (!select) return;
+  
+  select.innerHTML = '<option value="">Без привязки к ключевому слову</option>';
+  keywords.forEach(k => {
+    select.innerHTML += `<option value="${escapeHtml(k.id)}">${escapeHtml(k.name)} - ${escapeHtml(k.type)}</option>`;
+  });
+}
+
+// ==================== 8. УПРАВЛЕНИЕ ТОВАРАМИ ====================
+
+function loadAdminProducts() {
+  const container = document.getElementById("adminProductsList");
+  if (!container) return;
+  
+  const products = JSON.parse(localStorage.getItem("apex_products") || "[]");
+  
+  if (products.length === 0) {
+    container.innerHTML = "<div style='color: var(--text-muted); text-align: center; padding: 20px;'>Нет товаров</div>";
+    return;
+  }
+  
+  container.innerHTML = products.map(p => `
+    <div class="admin-product-item">
+      <div class="admin-product-info">
+        <div class="admin-product-title">
+          ${escapeHtml(p.title)}
+          ${p.discount ? `<span class="discount-badge">-${escapeHtml(p.discount)}</span>` : ''}
+        </div>
+        <div class="admin-product-price">
+          ${escapeHtml(p.price)}
+          ${p.originalPrice ? `<span style="text-decoration: line-through; color: var(--text-muted); font-size: 0.7rem; margin-left: 8px;">${escapeHtml(p.originalPrice)}</span>` : ''}
+        </div>
+        <div class="admin-product-keyword">${escapeHtml(p.keyword || 'Без категории')}</div>
+        <div class="admin-product-seller">Продавец: ${escapeHtml(p.seller)}</div>
+      </div>
+      <div class="admin-product-actions">
+        <button class="admin-edit-btn" onclick="editProduct('${p.id}')"><i class="fas fa-edit"></i></button>
+        <button class="admin-delete-btn" onclick="deleteProduct('${p.id}')"><i class="fas fa-trash"></i></button>
+      </div>
+    </div>
+  `).join('');
 }
 
 function createAdminProduct() {
@@ -348,7 +1299,7 @@ function createAdminProduct() {
     seller: seller || window.currentUser || "Admin",
     rating: 5.0,
     sales: 0,
-    fullDesc: `${fullDescription} Моментальная выдача. Гарантия качества.`,
+    fullDesc: `${fullDescription}\n\nМоментальная выдача. Гарантия качества.`,
     positive: "100%",
     responseTime: "отвечает быстро",
     imageUrl: imageUrl || "https://picsum.photos/id/42/400/200",
@@ -364,10 +1315,11 @@ function createAdminProduct() {
   
   if (window.productsArray) {
     window.productsArray = products;
-    window.filterProducts();
+    if (typeof filterProducts === 'function') filterProducts();
   }
   
   loadAdminProducts();
+  updateAdminStats();
   
   document.getElementById("postTitle").value = "";
   document.getElementById("postPrice").value = "";
@@ -378,252 +1330,8 @@ function createAdminProduct() {
   document.getElementById("postKeyword").value = "";
   document.getElementById("postType").value = "";
   
-  alert("✅ Товар успешно опубликован!");
+  showToast("✅ Товар успешно опубликован!", "success");
 }
-
-function loadAdminProducts() {
-  const container = document.getElementById("adminProductsList");
-  if (!container) return;
-  
-  const products = JSON.parse(localStorage.getItem("apex_products") || "[]");
-  
-  if (products.length === 0) {
-    container.innerHTML = "<div style='color: var(--text-muted); text-align: center; padding: 20px;'>Нет товаров</div>";
-    return;
-  }
-  
-  container.innerHTML = products.map(p => `
-    <div class="admin-product-item">
-      <div class="admin-product-info">
-        <div class="admin-product-title">
-          ${escapeHtml(p.title)}
-          ${p.discount ? `<span class="discount-badge">-${escapeHtml(p.discount)}</span>` : ''}
-        </div>
-        <div class="admin-product-price">
-          ${escapeHtml(p.price)}
-          ${p.originalPrice ? `<span style="text-decoration: line-through; color: var(--text-muted); font-size: 0.7rem; margin-left: 8px;">${escapeHtml(p.originalPrice)}</span>` : ''}
-        </div>
-        <div class="admin-product-keyword">${escapeHtml(p.keyword || 'Без категории')}</div>
-      </div>
-      <div class="admin-product-actions">
-        <button class="admin-edit-btn" onclick="editProduct('${p.id}')"><i class="fas fa-edit"></i></button>
-        <button class="admin-delete-btn" onclick="deleteProduct('${p.id}')"><i class="fas fa-trash"></i></button>
-      </div>
-    </div>
-  `).join('');
-}
-
-
-
-// Добавьте функцию загрузки блоков приложений
-function loadAppBlocks() {
-  const stored = localStorage.getItem("apex_app_blocks");
-  if (stored) {
-    appBlocks = JSON.parse(stored);
-  } else {
-    appBlocks = [
-      { id: "app1", name: "Telegram", keywordId: "", icon: "fab fa-telegram", imageUrl: "" },
-      { id: "app2", name: "WhatsApp", keywordId: "", icon: "fab fa-whatsapp", imageUrl: "" },
-      { id: "app3", name: "Instagram", keywordId: "", icon: "fab fa-instagram", imageUrl: "" },
-      { id: "app4", name: "TikTok", keywordId: "", icon: "fab fa-tiktok", imageUrl: "" },
-      { id: "app5", name: "YouTube", keywordId: "", icon: "fab fa-youtube", imageUrl: "" },
-      { id: "app6", name: "Spotify", keywordId: "", icon: "fab fa-spotify", imageUrl: "" },
-      { id: "app7", name: "Netflix", keywordId: "", icon: "fas fa-tv", imageUrl: "" },
-      { id: "app8", name: "Discord", keywordId: "", icon: "fab fa-discord", imageUrl: "" }
-    ];
-    localStorage.setItem("apex_app_blocks", JSON.stringify(appBlocks));
-  }
-  renderAppsBlocks();
-  renderHomeAppBlocks();
-}
-
-// Рендер блоков приложений в админке
-function renderAppsBlocks() {
-  const container = document.getElementById("appsBlocksList");
-  if (!container) return;
-  
-  if (appBlocks.length === 0) {
-    container.innerHTML = "<div style='color: var(--text-muted);'>Нет блоков приложений</div>";
-    return;
-  }
-  
-  container.innerHTML = appBlocks.map(block => `
-    <div class="game-block-item">
-      <div class="game-block-info">
-        <div class="game-block-icon">
-          ${block.imageUrl ? 
-            `<img src="${escapeHtml(block.imageUrl)}" alt="${escapeHtml(block.name)}">` : 
-            `<i class="${block.icon}"></i>`
-          }
-        </div>
-        <div>
-          <div class="game-block-name">${escapeHtml(block.name)}</div>
-          <div class="game-block-keyword">${block.keywordId ? 'Привязан к ключевому слову' : 'Без привязки'}</div>
-          ${block.imageUrl ? `<div class="game-block-keyword">📷 Фото установлено</div>` : ''}
-        </div>
-      </div>
-      <div class="game-block-actions">
-        <button class="edit-game-btn" onclick="editAppBlock('${block.id}')"><i class="fas fa-edit"></i></button>
-        <button class="delete-game-btn" onclick="deleteAppBlock('${block.id}')"><i class="fas fa-trash"></i></button>
-      </div>
-    </div>
-  `).join('');
-}
-
-// Рендер блоков приложений на главной странице
-function renderHomeAppBlocks() {
-  const container = document.getElementById("appsScrollWrapper");
-  if (!container) return;
-  
-  if (appBlocks.length === 0) {
-    container.innerHTML = '<div style="color: var(--text-muted); padding: 20px;">Нет блоков</div>';
-    return;
-  }
-  
-  const midIndex = Math.ceil(appBlocks.length / 2);
-  const firstRow = appBlocks.slice(0, midIndex);
-  const secondRow = appBlocks.slice(midIndex);
-  
-  const firstRowHtml = firstRow.map(block => `
-    <div class="game-card" data-app="${escapeHtml(block.name)}" onclick="openKeywordPageByAppBlock('${block.id}')">
-      <div class="game-icon">
-        ${block.imageUrl ? 
-          `<img src="${escapeHtml(block.imageUrl)}" alt="${escapeHtml(block.name)}">` : 
-          `<i class="${block.icon}"></i>`
-        }
-      </div>
-      <div class="game-name">${escapeHtml(block.name)}</div>
-    </div>
-  `).join('');
-  
-  const secondRowHtml = secondRow.map(block => `
-    <div class="game-card" data-app="${escapeHtml(block.name)}" onclick="openKeywordPageByAppBlock('${block.id}')">
-      <div class="game-icon">
-        ${block.imageUrl ? 
-          `<img src="${escapeHtml(block.imageUrl)}" alt="${escapeHtml(block.name)}">` : 
-          `<i class="${block.icon}"></i>`
-        }
-      </div>
-      <div class="game-name">${escapeHtml(block.name)}</div>
-    </div>
-  `).join('');
-  
-  container.innerHTML = `
-    <div class="games-row">${firstRowHtml}</div>
-    <div class="games-row-second">${secondRowHtml}</div>
-  `;
-}
-
-// В admin.js - исправленная функция добавления блока приложения
-function addAppBlock() {
-  const name = document.getElementById("newAppName")?.value.trim();
-  const keywordId = document.getElementById("newAppKeyword")?.value;
-  const icon = document.getElementById("newAppIcon")?.value;
-  const imageUrl = document.getElementById("newAppImageUrl")?.value.trim();
-  
-  if (!name) {
-    alert("Введите название приложения");
-    return;
-  }
-  
-  const newBlock = {
-    id: "app_" + Date.now().toString(),
-    name: name,
-    keywordId: keywordId || "",  // Сохраняем ID ключевого слова
-    icon: icon || "fab fa-android",
-    imageUrl: imageUrl || ""
-  };
-  
-  appBlocks.push(newBlock);
-  localStorage.setItem("apex_app_blocks", JSON.stringify(appBlocks));
-  renderAppsBlocks();
-  renderHomeAppBlocks();
-  updateAppKeywordSelect();
-  
-  // Очищаем форму
-  document.getElementById("newAppName").value = "";
-  document.getElementById("newAppKeyword").value = "";
-  document.getElementById("newAppIcon").value = "fab fa-android";
-  document.getElementById("newAppImageUrl").value = "";
-  const preview = document.getElementById("appImagePreview");
-  if (preview) preview.style.display = "none";
-  
-  alert("✅ Блок приложения успешно добавлен!");
-}
-
-// Удаление блока приложения
-function deleteAppBlock(id) {
-  if (confirm("Удалить этот блок?")) {
-    appBlocks = appBlocks.filter(b => b.id !== id);
-    localStorage.setItem("apex_app_blocks", JSON.stringify(appBlocks));
-    renderAppsBlocks();
-    renderHomeAppBlocks();
-    alert("✅ Блок удален");
-  }
-}
-
-// Редактирование блока приложения
-function editAppBlock(id) {
-  const block = appBlocks.find(b => b.id === id);
-  if (!block) return;
-  
-  const newName = prompt("Введите новое название:", block.name);
-  if (newName && newName.trim()) {
-    block.name = newName.trim();
-    
-    const newImageUrl = prompt("Введите URL нового фото (оставьте пустым для использования иконки):\n\nТекущее фото: " + (block.imageUrl || "не установлено"), block.imageUrl || "");
-    if (newImageUrl !== null) {
-      block.imageUrl = newImageUrl.trim();
-    }
-    
-    localStorage.setItem("apex_app_blocks", JSON.stringify(appBlocks));
-    renderAppsBlocks();
-    renderHomeAppBlocks();
-    alert("✅ Блок обновлен!");
-  }
-}
-
-// В admin.js - исправленная функция обновления выбора ключевых слов для приложений
-function updateAppKeywordSelect() {
-  const select = document.getElementById("newAppKeyword");
-  if (!select) return;
-  
-  select.innerHTML = '<option value="">Без привязки к ключевому слову</option>';
-  // Используем глобальный массив keywords
-  if (typeof keywords !== 'undefined' && keywords.length > 0) {
-    keywords.forEach(k => {
-      select.innerHTML += `<option value="${escapeHtml(k.id)}">${escapeHtml(k.name)} - ${escapeHtml(k.type)}</option>`;
-    });
-  } else {
-    // Если keywords еще не загружены, загружаем их
-    const stored = localStorage.getItem("apex_keywords");
-    if (stored) {
-      const kw = JSON.parse(stored);
-      kw.forEach(k => {
-        select.innerHTML += `<option value="${escapeHtml(k.id)}">${escapeHtml(k.name)} - ${escapeHtml(k.type)}</option>`;
-      });
-    }
-  }
-}
-// Превью фото для приложения
-function previewAppImage(input) {
-  const preview = document.getElementById("appImagePreview");
-  const previewImg = document.getElementById("appPreviewImg");
-  const imageUrl = input.value.trim();
-  
-  if (imageUrl) {
-    previewImg.src = imageUrl;
-    preview.style.display = "block";
-    previewImg.onerror = function() {
-      preview.style.display = "none";
-      alert("Не удалось загрузить изображение по указанному URL. Проверьте ссылку.");
-    };
-  } else {
-    preview.style.display = "none";
-  }
-}
-
-
 
 function deleteProduct(productId) {
   if (confirm("Удалить этот товар?")) {
@@ -633,11 +1341,12 @@ function deleteProduct(productId) {
     
     if (window.productsArray) {
       window.productsArray = products;
-      window.filterProducts();
+      if (typeof filterProducts === 'function') filterProducts();
     }
     
     loadAdminProducts();
-    alert("Товар удалён");
+    updateAdminStats();
+    showToast("Товар удалён", "success");
   }
 }
 
@@ -663,57 +1372,183 @@ function editProduct(productId) {
   }
   
   deleteProduct(productId);
-  document.querySelector(".admin-card").scrollIntoView({ behavior: "smooth" });
+  document.querySelector(".admin-card")?.scrollIntoView({ behavior: "smooth" });
   alert("Редактирование: заполните форму и нажмите 'Опубликовать товар'");
 }
 
+// ==================== 9. ОТКРЫТИЕ СТРАНИЦЫ ПО КЛЮЧЕВОМУ СЛОВУ ====================
+
+function openKeywordPage(keyword) {
+  console.log("openKeywordPage called with:", keyword);
+  const products = JSON.parse(localStorage.getItem("apex_products") || "[]");
+  const filteredProducts = products.filter(p => 
+    p.keyword && p.keyword.toLowerCase().includes(keyword.toLowerCase())
+  );
+  
+  const container = document.getElementById("keywordProductsGrid");
+  const title = document.getElementById("keywordPageTitle");
+  
+  if (title) title.innerText = keyword;
+  
+  if (container) {
+    if (filteredProducts.length === 0) {
+      container.innerHTML = "<div class='empty-state'><i class='fas fa-box-open'></i><p>Нет товаров по этой категории</p></div>";
+    } else {
+      let html = "";
+      filteredProducts.forEach(prod => {
+        html += `
+          <div class="product-card" onclick="window.openProductDetailById('${prod.id}')">
+            <div class="card-image">
+              <img src="${escapeHtml(prod.imageUrl || 'https://picsum.photos/id/42/400/300')}" 
+                   alt="${escapeHtml(prod.title)}"
+                   loading="lazy"
+                   onerror="this.src='https://picsum.photos/id/42/400/300'">
+              ${prod.discount ? `<span class="discount-badge">🔥 ${prod.discount}</span>` : ''}
+            </div>
+            <div class="card-body">
+              <div class="price-wrapper">
+                <span class="current-price">${escapeHtml(prod.price)}</span>
+                ${prod.originalPrice ? `<span class="old-price">${escapeHtml(prod.originalPrice)}</span>` : ''}
+              </div>
+              <h3 class="product-title">${escapeHtml(prod.title)}</h3>
+              <div class="rating">
+                <span class="stars">★★★★★</span>
+                <span class="reviews-count">${prod.sales || 0} отзывов</span>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+  }
+  
+  if (typeof navigate === 'function') {
+    navigate("keywordPage");
+  } else if (typeof showPage === 'function') {
+    showPage("keywordPage");
+  }
+}
+
+// ==================== 10. ВХОД В АДМИНКУ ====================
+
 function toggleAdminPanel() {
-  if (!isAdmin) {
+  const currentUser = localStorage.getItem("apex_user") || "Гость";
+  
+  if (!isUserAdmin(currentUser)) {
     const password = prompt("Введите пароль администратора:");
     if (password === ADMIN_PASSWORD) {
-      isAdmin = true;
-      document.getElementById("adminToggleBtn").style.background = "var(--accent-primary)";
-      document.getElementById("adminToggleBtn").innerHTML = '<i class="fas fa-user-shield"></i>';
-      
-      const bottomNav = document.getElementById("bottomNav");
-      if (bottomNav && !document.getElementById("adminNavBtn")) {
-        const adminBtn = document.createElement("button");
-        adminBtn.className = "nav-btn";
-        adminBtn.id = "adminNavBtn";
-        adminBtn.setAttribute("data-nav", "admin");
-        adminBtn.innerHTML = '<i class="fas fa-cog"></i><span>Админ</span>';
-        
-        const wave = bottomNav.querySelector(".wave");
-        const plusBtn = bottomNav.querySelector(".plus-btn");
-        if (plusBtn && wave) {
-          bottomNav.insertBefore(adminBtn, plusBtn.nextSibling);
-        } else {
-          bottomNav.appendChild(adminBtn);
-        }
-        
-        if (window.initNavigation) window.initNavigation();
-        alert("Добро пожаловать в админ-панель!");
-        initAdmin();
+      if (!admins.find(a => a.username === currentUser)) {
+        admins.push({
+          id: "admin_" + Date.now(),
+          username: currentUser,
+          isOwner: admins.length === 0,
+          hiredBy: "system",
+          hiredAt: new Date().toISOString()
+        });
+        saveAdmins();
       }
+      showAdminUI();
     } else {
       alert("Неверный пароль!");
     }
   } else {
-    navigate("admin");
+    if (typeof navigate === 'function') {
+      navigate("admin");
+    } else if (typeof showPage === 'function') {
+      showPage("admin");
+    }
   }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-  initAdmin();
-});
+function showAdminUI() {
+  const adminBtn = document.getElementById("adminToggleBtn");
+  if (adminBtn) {
+    adminBtn.style.background = "var(--accent-primary)";
+    adminBtn.innerHTML = '<i class="fas fa-user-shield"></i>';
+  }
+  
+  const bottomNav = document.getElementById("bottomNav");
+  if (bottomNav && !document.getElementById("adminNavBtn")) {
+    const adminNavBtn = document.createElement("button");
+    adminNavBtn.className = "nav-item";
+    adminNavBtn.id = "adminNavBtn";
+    adminNavBtn.setAttribute("data-nav", "admin");
+    adminNavBtn.innerHTML = '<div class="nav-icon"></div><div class="nav-label">Админ</div>';
+    
+    const navContainer = document.getElementById("navContainer");
+    if (navContainer) {
+      navContainer.appendChild(adminNavBtn);
+    }
+    
+    if (window.initBlobNavigation) window.initBlobNavigation();
+    alert("Добро пожаловать в админ-панель!");
+    initAdmin();
+  }
+}
 
-window.addKeyword = addKeyword;
-window.deleteKeyword = deleteKeyword;
+// ==================== 11. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/[&<>]/g, function(m) {
+    if (m === '&') return '&amp;';
+    if (m === '<') return '&lt;';
+    if (m === '>') return '&gt;';
+    return m;
+  });
+}
+
+function showToast(message, type = 'success') {
+  let toast = document.getElementById('adminToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'adminToast';
+    toast.className = 'toast-notification';
+    document.body.appendChild(toast);
+  }
+  
+  const icon = type === 'success' ? 'fa-check-circle' : (type === 'error' ? 'fa-exclamation-triangle' : 'fa-info-circle');
+  toast.innerHTML = `<i class="fas ${icon}"></i><span>${message}</span>`;
+  toast.className = `toast-notification ${type} show`;
+  
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 3000);
+}
+
+// ==================== 12. ЭКСПОРТ ФУНКЦИЙ ====================
+
+window.initAdmin = initAdmin;
+window.hireAdmin = hireAdmin;
+window.fireAdmin = fireAdmin;
+window.approveProduct = approveProduct;
+window.rejectProduct = rejectProduct;
+window.openSliderEditor = openSliderEditor;
+window.closeSliderEditor = closeSliderEditor;
+window.addSlideImage = addSlideImage;
+window.updateSlideImage = updateSlideImage;
+window.removeSlideImage = removeSlideImage;
+window.openAdminDialog = openAdminDialog;
+window.closeAdminChat = closeAdminChat;
+window.sendAdminMessage = sendAdminMessage;
+window.showAdminSection = showAdminSection;
+window.addGameBlock = addGameBlock;
+window.deleteGameBlock = deleteGameBlock;
+window.editGameBlock = editGameBlock;
+window.addAppBlock = addAppBlock;
+window.deleteAppBlock = deleteAppBlock;
+window.editAppBlock = editAppBlock;
 window.createAdminProduct = createAdminProduct;
 window.deleteProduct = deleteProduct;
 window.editProduct = editProduct;
 window.toggleAdminPanel = toggleAdminPanel;
-window.addGameBlock = addGameBlock;
-window.deleteGameBlock = deleteGameBlock;
-window.editGameBlock = editGameBlock;
-window.previewGameImage = previewGameImage;
+window.openKeywordPage = openKeywordPage;
+window.addKeyword = addKeyword;        // <-- ДОБАВЛЕНО
+window.editKeyword = editKeyword;      // <-- ДОБАВЛЕНО
+window.deleteKeyword = deleteKeyword;  // <-- ДОБАВЛЕНО
+
+document.addEventListener('DOMContentLoaded', function() {
+  console.log("DOM loaded, initializing admin...");
+  initAdmin();
+});
