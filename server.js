@@ -302,7 +302,43 @@ io.on('connection', (socket) => {
     io.emit('users-online', Array.from(connectedUsers.values()));
   });
 });
-
+// Google Auth - регистрация/вход через Google
+app.post('/api/users/google-auth', (req, res) => {
+  const db = loadDB();
+  const { id, email, username, picture } = req.body;
+  
+  let user = db.users.find(u => u.email === email || u.googleId === id);
+  
+  if (!user) {
+    user = {
+      id: uuidv4(),
+      username: username,
+      email: email,
+      googleId: id,
+      picture: picture,
+      balance: 0,
+      joinedDate: new Date().toISOString(),
+      rating: 5.0,
+      reviewsCount: 0,
+      productsCount: 0
+    };
+    db.users.push(user);
+    saveDB(db);
+  } else {
+    // Обновляем данные пользователя если нужно
+    user.username = username;
+    user.picture = picture;
+    saveDB(db);
+  }
+  
+  res.json({
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    balance: user.balance,
+    joinedDate: user.joinedDate
+  });
+});
 app.get('/api/messages/:userId/:partnerId', (req, res) => {
   const db = loadDB();
   const messages = (db.messages || []).filter(m => 

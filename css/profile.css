@@ -580,6 +580,33 @@
 
 /* ========== АДАПТИВ ДЛЯ МОБИЛЬНЫХ ========== */
 @media (max-width: 768px) {
+    .profile-hero-section {
+    background: linear-gradient(135deg, #11131f, #0a0c16);
+    margin: -16px -16px 0 -16px;
+    border-radius: 0 0 32px 32px;
+    padding: 28px 20px;
+  }
+  
+  /* Убираем рамки и тени для бесшовного вида */
+  .profile-hero-section,
+  .profile-balance-card,
+  .profile-stats-grid .stat-item,
+  .profile-products-list,
+  .profile-payment-methods {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+  
+  .profile-new-container {
+    padding: 0;
+  }
+  
+  /* Первая карточка баланса после hero */
+  .profile-balance-card {
+    margin-top: -8px;
+    border-radius: 0;
+  }
   .profile-new-container {
     padding: 16px;
   }
