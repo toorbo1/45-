@@ -6,7 +6,11 @@ const fs = require('fs');
 const http = require('http');
 const socketIo = require('socket.io');
 const { v4: uuidv4 } = require('uuid');
+const { createClient } = require('@supabase/supabase-js');
 
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
@@ -104,7 +108,30 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
   res.json({ success: true, url: `/uploads/${req.file.filename}` });
 });
-
+// ТЕСТОВЫЙ МАРШРУТ ДЛЯ ПРОВЕРКИ БАЗЫ ДАННЫХ
+app.get('/api/test-db', async (req, res) => {
+  try {
+    // Проверяем подключение к Supabase
+    const { data, error } = await supabase.from('keywords').select('*');
+    
+    if (error) {
+      console.error('Supabase error:', error);
+      return res.status(500).json({ 
+        error: 'Ошибка подключения к БД', 
+        details: error.message 
+      });
+    }
+    
+    res.json({ 
+      success: true, 
+      message: 'База данных работает!',
+      count: data.length,
+      keywords: data 
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 // Ключевые слова
 app.get('/api/keywords', (req, res) => {
   const db = loadDB();
