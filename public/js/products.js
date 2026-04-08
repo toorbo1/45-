@@ -167,55 +167,32 @@ function loadKeywordsForSelect() {
 
 async function loadProducts() {
     console.log('Loading products from server...');
-    
     try {
-        // Получаем товары через API
         const products = await API.getProducts();
-        
-        // Сохраняем в глобальную переменную
         window.productsArray = products;
+        localStorage.setItem('apex_products', JSON.stringify(products)); // резервная копия
         
-        // Сохраняем в localStorage для обратной совместимости
-        localStorage.setItem('apex_products', JSON.stringify(products));
-        
-        // Отображаем товары
         if (typeof filterProducts === 'function') {
             filterProducts();
         } else {
             renderProductGrid(products);
         }
         
-        // Обновляем счетчик товаров пользователя
-        if (typeof updateUserProductsCount === 'function') {
-            updateUserProductsCount();
-        }
-        
         console.log(`✅ Загружено ${products.length} товаров с сервера`);
-        
     } catch (error) {
-        console.error('Ошибка загрузки товаров:', error);
-        
+        console.error('Error loading products:', error);
         // Fallback на localStorage
         const stored = localStorage.getItem("apex_products");
         if (stored) {
             window.productsArray = JSON.parse(stored);
-            if (typeof filterProducts === 'function') {
-                filterProducts();
-            } else {
-                renderProductGrid(window.productsArray);
-            }
-            console.log(`⚠️ Использованы локальные данные: ${window.productsArray.length} товаров`);
-        } else {
-            // Пустой массив, если ничего нет
-            window.productsArray = [];
-            renderProductGrid([]);
+            if (typeof filterProducts === 'function') filterProducts();
         }
     }
 }
 
 
 async function createNewProduct() {
-    console.log('createNewProduct called');
+    console.log('🔵 createNewProduct вызвана');
     
     const category = document.getElementById('productCategory')?.value;
     const keywordId = document.getElementById('productKeywordSelect')?.value;
@@ -224,19 +201,16 @@ async function createNewProduct() {
     const discount = document.getElementById('productDiscount')?.value.trim();
     const description = document.getElementById('productDescription')?.value.trim();
     const instructions = document.getElementById('productInstructions')?.value.trim();
-    const contact = document.getElementById('productContact')?.value.trim();
-    const productType = document.querySelector('input[name="productType"]:checked')?.value || 'monthly';
     const imageUrl = document.getElementById('productImageUrl')?.value;
     
-    console.log('Поля:', { category, keywordId, title, price, description });
+    console.log('📝 Данные формы:', { category, keywordId, title, price });
     
+    // Валидация
     if (!category) { showToast('Выберите категорию товара', 'error'); return; }
     if (!keywordId) { showToast('Выберите сервис или ключевое слово', 'error'); return; }
     if (!title) { showToast('Введите название товара', 'error'); return; }
-    if (title.length < 3) { showToast('Название должно быть не менее 3 символов', 'error'); return; }
     if (!price) { showToast('Введите цену товара', 'error'); return; }
     if (!description) { showToast('Введите описание товара', 'error'); return; }
-    if (description.length < 20) { showToast('Описание должно быть не менее 20 символов', 'error'); return; }
     
     // Получаем имя ключевого слова
     let keywordName = '';
@@ -250,14 +224,14 @@ async function createNewProduct() {
         console.error('Error getting keyword:', e);
     }
     
-    // Формируем полное описание
+    // Формируем описание
     let fullDescription = description;
     if (instructions) {
         fullDescription += '\n\n📖 Инструкция по активации:\n' + instructions;
     }
     fullDescription += '\n\nМоментальная выдача. Гарантия качества.';
     
-    // Обработка цены со скидкой
+    // Цена со скидкой
     let finalPrice = price;
     let originalPrice = null;
     let discountText = discount || null;
@@ -267,8 +241,7 @@ async function createNewProduct() {
         const priceValue = parseFloat(price.replace(/[^0-9.-]/g, ''));
         if (!isNaN(priceValue) && !isNaN(discountValue)) {
             if (discount.includes('%')) {
-                const newPrice = priceValue * (1 - discountValue / 100);
-                finalPrice = Math.round(newPrice) + ' ₽';
+                finalPrice = Math.round(priceValue * (1 - discountValue / 100)) + ' ₽';
                 originalPrice = price;
             } else {
                 finalPrice = (priceValue - discountValue) + ' ₽';
@@ -290,31 +263,10 @@ async function createNewProduct() {
         originalPrice: originalPrice
     };
     
-    try {
-        // Отправляем на сервер
-        const savedProduct = await API.createProduct(newProduct);
-        
-        console.log('Товар сохранен:', savedProduct);
-        showToast('✅ Товар успешно опубликован!', 'success');
-        
-        // Перезагружаем список товаров
-        await loadProducts();
-        
-        // Очищаем форму
-        cancelCreateProduct();
-        
-        // Обновляем список товаров пользователя
-        if (typeof renderUserProductsList === 'function') {
-            renderUserProductsList();
-        }
-        if (typeof updateUserProductsCount === 'function') {
-            updateUserProductsCount();
-        }
-        
-    } catch (error) {
-        console.error('Ошибка при сохранении:', error);
-        showToast('❌ Ошибка при сохранении: ' + error.message, 'error');
-    }
+    // ❌ НЕПРАВИЛЬНО: сохраняем в localStorage
+    let products = JSON.parse(localStorage.getItem('apex_products') || '[]');
+    products.unshift(newProduct);
+    localStorage.setItem('apex_products', JSON.stringify(products));
 }
 
 
@@ -322,7 +274,6 @@ async function deleteUserProduct(productId) {
     if (confirm('Удалить этот товар?')) {
         try {
             await API.deleteProduct(productId);
-            
             showToast('✅ Товар удален', 'success');
             
             // Перезагружаем списки
@@ -331,9 +282,6 @@ async function deleteUserProduct(productId) {
             if (typeof renderUserProductsList === 'function') {
                 renderUserProductsList();
             }
-            if (typeof updateUserProductsCount === 'function') {
-                updateUserProductsCount();
-            }
             
         } catch (error) {
             console.error('Ошибка удаления:', error);
@@ -341,7 +289,6 @@ async function deleteUserProduct(productId) {
         }
     }
 }
-
 
 
 function openProductDetailById(productId) {
