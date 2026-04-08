@@ -165,28 +165,22 @@ function loadKeywordsForSelect() {
   });
 }
 
-function loadProducts() {
-  const stored = localStorage.getItem("apex_products");
-  if (stored) {
-    productsArray = JSON.parse(stored);
-    let needSave = false;
-    productsArray.forEach(p => {
-      if (!p.id) {
-        p.id = crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random();
-        needSave = true;
-      }
-    });
-    if (needSave) localStorage.setItem("apex_products", JSON.stringify(productsArray));
-  } else {
-    productsArray = [
-      { id: crypto.randomUUID?.() || '1', title: "Активная подписка | Турция", price: "0₺", seller: "Zubiko1337", rating: 5.0, sales: 24678, fullDesc: "Активный пользователь | Турция. Однократно актуальный бонус.\n\nМоментальная выдача. Гарантия качества.", positive: "98%", responseTime: "отвечает за 5 мин", imageUrl: "https://picsum.photos/id/104/400/300", keyword: "Discord", type: "Nitro" },
-      { id: crypto.randomUUID?.() || '2', title: "1000 Wild Cores", price: "668 ₽", seller: "GameSeller", rating: 4.9, sales: 12500, fullDesc: "Мгновенная доставка на аккаунт.\n\nМоментальная выдача. Гарантия качества.", positive: "97%", responseTime: "отвечает за 2 мин", imageUrl: "https://picsum.photos/id/26/400/300", keyword: "Steam", type: "Premium" },
-      { id: crypto.randomUUID?.() || '3', title: "Premium Access 30д", price: "450 ₽", seller: "ApexStore", rating: 5.0, sales: 8900, fullDesc: "Доступ ко всем функциям на 30 дней.\n\nМоментальная выдача. Гарантия качества.", positive: "99%", responseTime: "отвечает за 1 мин", imageUrl: "https://picsum.photos/id/0/400/300", keyword: "Spotify", type: "Premium" },
-      { id: crypto.randomUUID?.() || '4', title: "CS2 Prime Account", price: "1200 ₽", seller: "TopAcc", rating: 4.8, sales: 3400, fullDesc: "Готовый аккаунт с Prime статусом.\n\nМоментальная выдача. Гарантия качества.", positive: "95%", responseTime: "отвечает за 3 мин", imageUrl: "https://picsum.photos/id/155/400/300", keyword: "Steam", type: "Prime" }
-    ];
-    localStorage.setItem("apex_products", JSON.stringify(productsArray));
-  }
-  filterProducts();
+async function loadProducts() {
+    try {
+        const products = await window.API.getProducts();
+        window.productsArray = products;
+        localStorage.setItem('apex_products', JSON.stringify(products));
+        filterProducts();
+        console.log('✅ Товары загружены с сервера');
+    } catch (error) {
+        console.error('Ошибка загрузки:', error);
+        // Fallback на localStorage
+        const stored = localStorage.getItem("apex_products");
+        if (stored) {
+            window.productsArray = JSON.parse(stored);
+            filterProducts();
+        }
+    }
 }
 
 function openProductDetailById(productId) {

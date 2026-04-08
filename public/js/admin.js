@@ -1064,24 +1064,20 @@ function editAppBlock(id) {
 
 // ==================== 7. КЛЮЧЕВЫЕ СЛОВА (НОВАЯ ВЕРСИЯ) ====================
 
-function loadKeywords() {
-  const stored = localStorage.getItem("apex_keywords");
-  if (stored) {
-    keywords = JSON.parse(stored);
-  } else {
-    keywords = [
-      { id: "1", name: "Discord", type: "Nitro" },
-      { id: "2", name: "Discord", type: "Turbo" },
-      { id: "3", name: "Steam", type: "Premium" },
-      { id: "4", name: "Netflix", type: "4K" },
-      { id: "5", name: "Spotify", type: "Premium" }
-    ];
-    localStorage.setItem("apex_keywords", JSON.stringify(keywords));
-  }
-  renderKeywords();
-  updateKeywordSelect();
-  updateGameKeywordSelect();
-  updateAppKeywordSelect();
+async function loadKeywords() {
+    try {
+        const keywords = await window.API.getKeywords();
+        window.keywords = keywords;
+        localStorage.setItem('apex_keywords', JSON.stringify(keywords));
+        renderKeywords();
+        updateKeywordSelect();
+    } catch (error) {
+        console.error('Ошибка загрузки ключевых слов:', error);
+        const stored = localStorage.getItem("apex_keywords");
+        window.keywords = stored ? JSON.parse(stored) : [];
+        renderKeywords();
+        updateKeywordSelect();
+    }
 }
 
 function saveKeywords() {
