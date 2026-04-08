@@ -1,17 +1,20 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
+// ⚠️ КРИТИЧЕСКИ ВАЖНО: используем порт от Render или 3000 для локальной разработки
 const PORT = process.env.PORT || 3000;
 
-// Middleware
 app.use(cors());
 app.use(express.json());
-
-// Статические файлы из папки public
+// Статика из папки public
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Простой маршрут для проверки здоровья (health check)
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
+});
 
 // Supabase
 const supabaseUrl = process.env.SUPABASE_URL;
