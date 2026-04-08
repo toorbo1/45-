@@ -10,28 +10,28 @@ let adminDialogs = [];
 
 const ADMIN_PASSWORD = "admin123";
 
-// ИНИЦИАЛИЗАЦИЯ
+// Обновляем функцию initAdmin, чтобы она загружала данные с сервера
 function initAdmin() {
-  console.log("initAdmin started");
-  loadAdmins();
-  loadKeywords();
-  loadGameBlocks();
-  loadAppBlocks();
-  loadPendingProducts();
-  loadAdminDialogs();
-  loadAdminProducts();
-  updateKeywordSelect();
-  updateGameKeywordSelect();
-  updateAppKeywordSelect();
-  renderGamesBlocks();
-  renderAppsBlocks();
-  renderAdminsList();
-  renderPendingProductsList();
-  renderAdminDialogsList();
-  setupAdminChatListeners();
-  renderAdminNavButtons();
-  updateAdminStats();
-  renderKeywords(); // <-- ДОБАВЛЕНО: отрисовка ключевых слов
+    console.log("initAdmin started");
+    loadAdmins();
+    loadKeywords();  // теперь асинхронная
+    loadGameBlocks();
+    loadAppBlocks();
+    loadPendingProducts();
+    loadAdminDialogs();
+    loadAdminProducts();  // теперь асинхронная
+    updateKeywordSelect();
+    updateGameKeywordSelect();
+    updateAppKeywordSelect();
+    renderGamesBlocks();
+    renderAppsBlocks();
+    renderAdminsList();
+    renderPendingProductsList();
+    renderAdminDialogsList();
+    setupAdminChatListeners();
+    renderAdminNavButtons();
+    updateAdminStats();
+    renderKeywords();
 }
 
 function updateAdminStats() {
@@ -1066,18 +1066,99 @@ function editAppBlock(id) {
 
 async function loadKeywords() {
     try {
-        const keywords = await window.API.getKeywords();
+        const keywords = await API.getKeywords();
         window.keywords = keywords;
+        
+        // Сохраняем в localStorage для обратной совместимости
         localStorage.setItem('apex_keywords', JSON.stringify(keywords));
+        
         renderKeywords();
         updateKeywordSelect();
+        updateGameKeywordSelect();
+        updateAppKeywordSelect();
+        
     } catch (error) {
         console.error('Ошибка загрузки ключевых слов:', error);
+        // Fallback на localStorage
         const stored = localStorage.getItem("apex_keywords");
         window.keywords = stored ? JSON.parse(stored) : [];
         renderKeywords();
         updateKeywordSelect();
     }
+}
+
+async function addKeyword() {
+    const name = document.getElementById("newKeywordName")?.value.trim();
+    const type = document.getElementById("newKeywordType")?.value.trim();
+    
+    if (!name) {
+        showToast("Введите название ключевого слова", "error");
+        return;
+    }
+    
+    try {
+        const newKeyword = await API.createKeyword({
+            name: name,
+            type: type || "Стандарт"
+        });
+        
+        // Обновляем локальный массив
+        keywords.push(newKeyword);
+        
+        renderKeywords();
+        updateKeywordSelect();
+        updateGameKeywordSelect();
+        updateAppKeywordSelect();
+        
+        if (document.getElementById("newKeywordName")) {
+            document.getElementById("newKeywordName").value = "";
+        }
+        if (document.getElementById("newKeywordType")) {
+            document.getElementById("newKeywordType").value = "";
+        }
+        
+        showToast(`✅ Ключевое слово "${name}" добавлено!`, "success");
+        
+    } catch (error) {
+        console.error('Error adding keyword:', error);
+        showToast("❌ Ошибка при добавлении", "error");
+    }
+}
+
+async function deleteKeyword(keywordId) {
+    if (confirm("Удалить это ключевое слово? Все товары с ним останутся, но категория пропадёт.")) {
+        try {
+            await API.deleteKeyword(keywordId);
+            keywords = keywords.filter(k => k.id !== keywordId);
+            renderKeywords();
+            updateKeywordSelect();
+            updateGameKeywordSelect();
+            updateAppKeywordSelect();
+            showToast("✅ Ключевое слово удалено", "success");
+        } catch (error) {
+            console.error('Error deleting keyword:', error);
+            showToast("❌ Ошибка при удалении", "error");
+        }
+    }
+}
+
+async function updateAdminStats() {
+    try {
+        const products = await API.getProducts();
+        const productsCount = document.getElementById("adminProductsCount");
+        if (productsCount) productsCount.innerText = products.length;
+    } catch(e) {
+        console.error('Stats update error:', e);
+    }
+    
+    const pendingCount = document.getElementById("adminPendingCount");
+    if (pendingCount) pendingCount.innerText = pendingProducts.length;
+    
+    const adminsCount = document.getElementById("adminAdminsCount");
+    if (adminsCount) adminsCount.innerText = admins.length;
+    
+    const dialogsCount = document.getElementById("adminDialogsCount");
+    if (dialogsCount) dialogsCount.innerText = adminDialogs.length;
 }
 
 function saveKeywords() {
@@ -1245,9 +1326,9 @@ async function loadAdminProducts() {
         console.error('Ошибка загрузки товаров:', error);
         container.innerHTML = "<div style='color: red;'>Ошибка загрузки товаров</div>";
     }
-}
+  }
 
-async function createAdminProduct() {
+  async function createAdminProduct() {
     const keywordId = document.getElementById("postKeyword")?.value;
     const title = document.getElementById("postTitle")?.value.trim();
     const price = document.getElementById("postPrice")?.value.trim();
@@ -1256,82 +1337,158 @@ async function createAdminProduct() {
     const imageUrl = document.getElementById("postImageUrl")?.value.trim();
     const seller = document.getElementById("postSeller")?.value.trim() || window.currentUser || "Admin";
     
-    if (!keywordId) { alert("Выберите ключевое слово"); return; }
-    if (!title) { alert("Введите название"); return; }
-    if (!price) { alert("Введите цену"); return; }
+    if (!keywordId) { 
+        showToast("Выберите ключевое слово", "error");
+        return; 
+    }
+    if (!title) { 
+        showToast("Введите название", "error");
+        return; 
+    }
+    if (!price) { 
+        showToast("Введите цену", "error");
+        return; 
+    }
     
     // Находим выбранное ключевое слово
-    const selectedKeyword = keywords.find(k => k.id === keywordId);
-    const keywordName = selectedKeyword ? selectedKeyword.name : "Без категории";
+    let keywordName = "Без категории";
+    try {
+        const keywords = await API.getKeywords();
+        const selectedKeyword = keywords.find(k => k.id === keywordId);
+        if (selectedKeyword) {
+            keywordName = selectedKeyword.name;
+        }
+    } catch(e) {
+        console.error('Error getting keyword:', e);
+    }
+    
+    // Формируем полное описание
+    let fullDescription = description || "Новый товар от администратора";
+    fullDescription += "\n\nМоментальная выдача. Гарантия качества.";
+    
+    // Обработка цены со скидкой
+    let finalPrice = price;
+    let originalPrice = null;
+    let discountText = discount || null;
+    
+    if (discount) {
+        const discountValue = parseFloat(discount);
+        const priceValue = parseFloat(price.replace(/[^0-9.-]/g, ''));
+        if (!isNaN(priceValue) && !isNaN(discountValue)) {
+            if (discount.includes('%')) {
+                const newPrice = priceValue * (1 - discountValue / 100);
+                finalPrice = Math.round(newPrice) + ' ₽';
+                originalPrice = price;
+            } else {
+                finalPrice = (priceValue - discountValue) + ' ₽';
+                originalPrice = price;
+            }
+        }
+    }
     
     const newProduct = {
-        id: Date.now().toString(),
         title: title,
-        price: price,
-        discount: discount || null,
+        price: finalPrice,
         seller: seller,
         keyword: keywordName,
-        keyword_id: keywordId,
         image_url: imageUrl || "https://picsum.photos/id/42/400/200",
-        description: description || "Новый товар от администратора",
-        status: "active"
+        description: fullDescription,
+        discount: discountText,
+        originalPrice: originalPrice
     };
     
     try {
-        // ⭐ ВОТ ЭТА СТРОКА КРИТИЧЕСКИ ВАЖНА ⭐
-        // Отправляем данные НА СЕРВЕР, а не в localStorage
-        const savedProduct = await window.API.createProduct(newProduct);
+        // ⭐ ОТПРАВЛЯЕМ НА СЕРВЕР ⭐
+        const savedProduct = await API.createProduct(newProduct);
         
         console.log('Товар сохранен на сервере:', savedProduct);
         showToast('✅ Товар добавлен и виден всем!', 'success');
         
-        // Очищаем форму и обновляем список
+        // Очищаем форму
         clearProductForm();
-        await loadAdminProducts(); // перезагружаем список товаров в админке
+        
+        // Перезагружаем списки
+        await loadAdminProducts();
+        if (typeof loadProducts === 'function') {
+            await loadProducts();
+        }
+        
+        // Обновляем счетчики
+        updateAdminStats();
+        
     } catch (error) {
-        console.error('Ошибка:', error);
-        showToast('❌ Ошибка при сохранении', 'error');
+        console.error('Ошибка при сохранении:', error);
+        showToast('❌ Ошибка при сохранении: ' + error.message, 'error');
     }
 }
 
+// Очистка формы
+function clearProductForm() {
+    document.getElementById("postKeyword").value = "";
+    document.getElementById("postType").value = "";
+    document.getElementById("postTitle").value = "";
+    document.getElementById("postPrice").value = "";
+    document.getElementById("postDiscount").value = "";
+    document.getElementById("postDescription").value = "";
+    document.getElementById("postImageUrl").value = "";
+    document.getElementById("postSeller").value = "";
+}
 async function deleteProduct(productId) {
     if (confirm("Удалить этот товар?")) {
         try {
             await API.deleteProduct(productId);
             showToast("✅ Товар удалён", "success");
-            loadAdminProducts(); // Обновляем список
-            loadProducts(); // Обновляем главную страницу
+            
+            // Перезагружаем списки
+            await loadAdminProducts();
+            if (typeof loadProducts === 'function') {
+                await loadProducts();
+            }
+            
+            // Обновляем счетчики
+            updateAdminStats();
+            
         } catch (error) {
             console.error('Ошибка удаления:', error);
-            showToast("❌ Ошибка при удалении", "error");
+            showToast("❌ Ошибка при удалении: " + error.message, "error");
         }
     }
 }
 
 function editProduct(productId) {
-  let products = JSON.parse(localStorage.getItem("apex_products") || "[]");
-  const product = products.find(p => p.id === productId);
-  
-  if (!product) {
-    alert("Товар не найден");
-    return;
-  }
-  
-  document.getElementById("postTitle").value = product.title;
-  document.getElementById("postPrice").value = product.price;
-  document.getElementById("postDiscount").value = product.discount || "";
-  document.getElementById("postDescription").value = product.fullDesc;
-  document.getElementById("postImageUrl").value = product.imageUrl || "";
-  document.getElementById("postSeller").value = product.seller || "";
-  document.getElementById("postType").value = product.type || "";
-  
-  if (product.keywordId) {
-    document.getElementById("postKeyword").value = product.keywordId;
-  }
-  
-  deleteProduct(productId);
-  document.querySelector(".admin-card")?.scrollIntoView({ behavior: "smooth" });
-  alert("Редактирование: заполните форму и нажмите 'Опубликовать товар'");
+    // Сначала получаем товары с сервера
+    API.getProducts().then(products => {
+        const product = products.find(p => p.id === productId);
+        
+        if (!product) {
+            alert("Товар не найден");
+            return;
+        }
+        
+        // Заполняем форму
+        document.getElementById("postTitle").value = product.title;
+        document.getElementById("postPrice").value = product.price;
+        document.getElementById("postDiscount").value = product.discount || "";
+        document.getElementById("postDescription").value = product.fullDesc || product.description || "";
+        document.getElementById("postImageUrl").value = product.image_url || "";
+        document.getElementById("postSeller").value = product.seller || "";
+        
+        // Находим ключевое слово по имени
+        if (product.keyword) {
+            API.getKeywords().then(keywords => {
+                const kw = keywords.find(k => k.name === product.keyword);
+                if (kw) {
+                    document.getElementById("postKeyword").value = kw.id;
+                }
+            });
+        }
+        
+        // Удаляем старый товар
+        deleteProduct(productId).then(() => {
+            document.querySelector(".admin-card")?.scrollIntoView({ behavior: "smooth" });
+            showToast("Редактирование: заполните форму и нажмите 'Опубликовать товар'", "info");
+        });
+    });
 }
 
 // ==================== 9. ОТКРЫТИЕ СТРАНИЦЫ ПО КЛЮЧЕВОМУ СЛОВУ ====================

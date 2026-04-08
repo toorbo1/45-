@@ -897,16 +897,36 @@
 
 <!-- ==================== СКРИПТЫ ==================== -->
 <script src="js/api.js"></script>
+<!-- Глобальная инициализация после загрузки всех скриптов -->
 <script>
-// Автоматическая загрузка товаров при загрузке страницы
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        const products = await API.getProducts();
-        if (products.length > 0) {
-            localStorage.setItem('apex_products', JSON.stringify(products));
-            if (typeof loadProducts === 'function') loadProducts();
+// Ждем загрузки всех скриптов и инициализируем API
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('Global initialization started');
+    
+    // Проверяем API
+    if (window.API) {
+        console.log('API loaded successfully');
+        
+        // Тестируем соединение с сервером
+        try {
+            const testResult = await API.testDatabase();
+            console.log('Database test:', testResult);
+            if (testResult.success) {
+                console.log('✅ Connected to Supabase');
+            } else {
+                console.warn('⚠️ Database connection issue:', testResult.error);
+            }
+        } catch(e) {
+            console.error('API test failed:', e);
         }
-    } catch(e) { console.error(e); }
+        
+        // Загружаем товары
+        if (typeof loadProducts === 'function') {
+            await loadProducts();
+        }
+    } else {
+        console.error('API not loaded!');
+    }
 });
 </script>
 <script src="js/auth.js"></script>
