@@ -1,25 +1,29 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
-// ⚠️ КРИТИЧЕСКИ ВАЖНО: используем порт от Render или 3000 для локальной разработки
-const PORT = process.env.PORT || 3000;
+// ⚠️ КРИТИЧЕСКИ ВАЖНО: используем порт от Render
+const PORT = process.env.PORT || 10000;
 
+// Middleware
 app.use(cors());
-app.use(express.json());
-// Статика из папки public
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Простой маршрут для проверки здоровья (health check)
-app.get('/health', (req, res) => {
-    res.status(200).send('OK');
-});
+// Статические файлы
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Supabase
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
+
+// ============ HEALTH CHECK ДЛЯ RENDER ============
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
+});
 
 // ============ API МАРШРУТЫ ============
 
@@ -111,7 +115,6 @@ app.get('/api/game-blocks', async (req, res) => {
         if (error) throw error;
         res.json(data || []);
     } catch (err) {
-        console.error('GET game-blocks error:', err);
         res.json([]);
     }
 });
@@ -129,7 +132,6 @@ app.post('/api/game-blocks', async (req, res) => {
         if (error) throw error;
         res.json(data[0]);
     } catch (err) {
-        console.error('POST game-block error:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -139,7 +141,6 @@ app.delete('/api/game-blocks/:id', async (req, res) => {
         await supabase.from('game_blocks').delete().eq('id', req.params.id);
         res.json({ success: true });
     } catch (err) {
-        console.error('DELETE game-block error:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -151,7 +152,6 @@ app.get('/api/app-blocks', async (req, res) => {
         if (error) throw error;
         res.json(data || []);
     } catch (err) {
-        console.error('GET app-blocks error:', err);
         res.json([]);
     }
 });
@@ -169,7 +169,6 @@ app.post('/api/app-blocks', async (req, res) => {
         if (error) throw error;
         res.json(data[0]);
     } catch (err) {
-        console.error('POST app-block error:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -179,29 +178,27 @@ app.delete('/api/app-blocks/:id', async (req, res) => {
         await supabase.from('app_blocks').delete().eq('id', req.params.id);
         res.json({ success: true });
     } catch (err) {
-        console.error('DELETE app-block error:', err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// ТЕСТ БАЗЫ ДАННЫХ (только один раз!)
+// ТЕСТ БАЗЫ ДАННЫХ
 app.get('/api/test-db', async (req, res) => {
     try {
         const { data, error } = await supabase.from('keywords').select('*');
         if (error) throw error;
         res.json({ success: true, count: data.length, keywords: data });
     } catch (err) {
-        console.error('TEST DB error:', err);
         res.json({ success: false, error: err.message });
     }
 });
 
-// Все остальные маршруты отдают index.html (для SPA)
+// ВСЕ ОСТАЛЬНЫЕ МАРШРУТЫ - ОТДАЁМ INDEX.HTML
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // ЗАПУСК СЕРВЕРА
-app.listen(PORT, () => {
-    console.log(`✅ Сервер на порту ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`✅ Сервер запущен на порту ${PORT}`);
 });
