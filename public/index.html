@@ -895,41 +895,14 @@
   </div>
 </footer>
 
-<!-- ==================== СКРИПТЫ ==================== -->
+<!-- ==================== СКРИПТЫ (НОВЫЙ ПОРЯДОК) ==================== -->
+<!-- Сначала API -->
 <script src="js/api.js"></script>
-<!-- Глобальная инициализация после загрузки всех скриптов -->
-<script>
-// Ждем загрузки всех скриптов и инициализируем API
-document.addEventListener('DOMContentLoaded', async function() {
-    console.log('Global initialization started');
-    
-    // Проверяем API
-    if (window.API) {
-        console.log('API loaded successfully');
-        
-        // Тестируем соединение с сервером
-        try {
-            const testResult = await API.testDatabase();
-            console.log('Database test:', testResult);
-            if (testResult.success) {
-                console.log('✅ Connected to Supabase');
-            } else {
-                console.warn('⚠️ Database connection issue:', testResult.error);
-            }
-        } catch(e) {
-            console.error('API test failed:', e);
-        }
-        
-        // Загружаем товары
-        if (typeof loadProducts === 'function') {
-            await loadProducts();
-        }
-    } else {
-        console.error('API not loaded!');
-    }
-}); 
-</script>
-<script src="js/auth.js"></script>
+
+<!-- Потом фиксы -->
+<script src="js/auth-fix.js"></script>
+
+<!-- Потом остальные скрипты -->
 <script src="js/slider.js"></script>
 <script src="js/products.js"></script>
 <script src="js/chats.js"></script>
@@ -939,9 +912,26 @@ document.addEventListener('DOMContentLoaded', async function() {
 <script src="js/profile-new.js"></script>
 <script src="js/products-manage.js"></script>
 <script src="js/bottom-nav-blob.js"></script>
-<!-- Google Auth Scripts -->
-<script src="js/google-auth.js"></script>
 <script src="js/profile-avatar-upload.js"></script>
 <script src="js/withdraw.js"></script>
+
+<!-- Глобальная инициализация -->
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('🚀 Global initialization started');
+    
+    // Загружаем товары
+    if (typeof loadProducts === 'function') {
+        await loadProducts();
+    }
+    
+    // Обновляем статистику в админке
+    if (typeof updateAdminStats === 'function') {
+        setTimeout(updateAdminStats, 500);
+    }
+    
+    console.log('✅ Initialization complete');
+});
+</script>
 </body>
 </html>

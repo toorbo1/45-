@@ -1,11 +1,21 @@
-// API для работы с сервером Supabase через ваш бэкенд
+// ============ API ДЛЯ РАБОТЫ С СЕРВЕРОМ ==========
+
 const API = {
-    // Базовый URL (для локальной разработки и продакшена)
-    baseURL: window.location.origin,
+    // Базовый URL (автоматически определяет сервер)
+    baseURL: '',
+    
+    init() {
+        // Определяем базовый URL
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            this.baseURL = 'http://localhost:3000';
+        } else {
+            this.baseURL = window.location.origin;
+        }
+        console.log('API initialized with baseURL:', this.baseURL);
+    },
     
     // ============ ТОВАРЫ ============
     
-    // Получить все товары
     async getProducts() {
         try {
             const res = await fetch(`${this.baseURL}/api/products`);
@@ -14,13 +24,11 @@ const API = {
             return Array.isArray(data) ? data : [];
         } catch (error) {
             console.error('API.getProducts error:', error);
-            // Fallback на localStorage
             const stored = localStorage.getItem('apex_products');
             return stored ? JSON.parse(stored) : [];
         }
     },
     
-    // Добавить товар
     async createProduct(product) {
         const res = await fetch(`${this.baseURL}/api/products`, {
             method: 'POST',
@@ -34,24 +42,20 @@ const API = {
                 description: product.description
             })
         });
-        
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return await res.json();
     },
     
-    // Удалить товар
     async deleteProduct(id) {
         const res = await fetch(`${this.baseURL}/api/products/${id}`, {
             method: 'DELETE'
         });
-        
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return await res.json();
     },
     
     // ============ КЛЮЧЕВЫЕ СЛОВА ============
     
-    // Получить все ключевые слова
     async getKeywords() {
         try {
             const res = await fetch(`${this.baseURL}/api/keywords`);
@@ -65,78 +69,25 @@ const API = {
         }
     },
     
-    // Добавить ключевое слово
     async createKeyword(keyword) {
         const res = await fetch(`${this.baseURL}/api/keywords`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                name: keyword.name,
-                type: keyword.type
-            })
+            body: JSON.stringify(keyword)
         });
-        
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return await res.json();
     },
     
-    // Удалить ключевое слово
     async deleteKeyword(id) {
         const res = await fetch(`${this.baseURL}/api/keywords/${id}`, {
             method: 'DELETE'
         });
-        
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return await res.json();
     },
     
-    // ============ БЛОКИ ИГР ============
-    
-    async getGameBlocks() {
-        const res = await fetch(`${this.baseURL}/api/game-blocks`);
-        return res.json();
-    },
-    
-    async createGameBlock(block) {
-        const res = await fetch(`${this.baseURL}/api/game-blocks`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(block)
-        });
-        return res.json();
-    },
-    
-    async deleteGameBlock(id) {
-        const res = await fetch(`${this.baseURL}/api/game-blocks/${id}`, {
-            method: 'DELETE'
-        });
-        return res.json();
-    },
-    
-    // ============ БЛОКИ ПРИЛОЖЕНИЙ ============
-    
-    async getAppBlocks() {
-        const res = await fetch(`${this.baseURL}/api/app-blocks`);
-        return res.json();
-    },
-    
-    async createAppBlock(block) {
-        const res = await fetch(`${this.baseURL}/api/app-blocks`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(block)
-        });
-        return res.json();
-    },
-    
-    async deleteAppBlock(id) {
-        const res = await fetch(`${this.baseURL}/api/app-blocks/${id}`, {
-            method: 'DELETE'
-        });
-        return res.json();
-    },
-    
-    // ============ ТЕСТ БАЗЫ ДАННЫХ ============
+    // ============ ТЕСТ ============
     
     async testDatabase() {
         const res = await fetch(`${this.baseURL}/api/test-db`);
@@ -144,7 +95,19 @@ const API = {
     }
 };
 
-// Экспортируем в глобальную область
+// Инициализация
+API.init();
+
+// Простой auth для совместимости
+window.api = {
+    login: async (username) => {
+        return { id: Date.now().toString(), username: username, balance: 0, products_count: 0 };
+    },
+    getProducts: API.getProducts,
+    createProduct: API.createProduct,
+    deleteProduct: API.deleteProduct
+};
+
 window.API = API;
 
-console.log('✅ API module loaded, connected to server');
+console.log('✅ API module loaded');
