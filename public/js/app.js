@@ -130,106 +130,76 @@ function setupChatEventListeners() {
   }
 }
 
-// app.js
-// ЕДИНАЯ ФУНКЦИЯ ПОКАЗА СТРАНИЦЫ
+// ============ ГЛАВНЫЙ ФАЙЛ ПРИЛОЖЕНИЯ ============
+
+// Навигация между страницами
 function showPage(pageId) {
-  console.log('Showing page:', pageId);
-  
-  // Скрываем ВСЕ страницы
-  const allPages = document.querySelectorAll('.page');
-  allPages.forEach(page => {
+  document.querySelectorAll('.page').forEach(page => {
     page.classList.remove('active');
-    page.style.display = 'none';
   });
-  
-  // Показываем нужную
-  const targetPage = document.getElementById(pageId);
-  if (targetPage) {
-    targetPage.style.display = 'block';
-    targetPage.classList.add('active');
-    console.log('Activated page:', pageId);
-  } else {
-    console.error('Page not found:', pageId);
-  }
-  
-  // === НОВЫЙ КОД: ПРОКРУТКА ВВЕРХ ДЛЯ ВСЕХ СТРАНИЦ ===
-  // Прокручиваем окно в самое начало
-  window.scrollTo({
-    top: 0,
-    left: 0,
-    behavior: 'smooth' // или 'auto' для мгновенной прокрутки
-  });
-  
-  // Специальная обработка для страницы чата (прокрутка после загрузки сообщений)
-  if (pageId === 'chat') {
-    // Небольшая задержка, чтобы DOM чата успел обновиться
-    setTimeout(() => {
-      const messagesArea = document.getElementById('chatMessagesArea');
-      if (messagesArea) {
-        messagesArea.scrollTop = 0; // Прокручиваем сообщения в начало
-      }
-      // Дополнительная прокрутка окна на всякий случай
-      window.scrollTo(0, 0);
-    }, 100);
-  }
-  
-  // Управление нижними меню
-  const mainBottomNav = document.getElementById('bottomNav');
-  
-  if (pageId === 'profile') {
-    if (mainBottomNav) mainBottomNav.style.display = 'flex';
-    if (typeof loadUserProductsInProfile === 'function') loadUserProductsInProfile();
-    if (typeof updateProfileUI === 'function') updateProfileUI();
-    if (typeof updateNewProfileStats === 'function' && window.userProfile) {
-      updateNewProfileStats(window.userProfile);
-    }
-  } else if (pageId === 'products-manage') {
-    if (mainBottomNav) mainBottomNav.style.display = 'flex';
-    if (typeof renderUserProductsList === 'function') renderUserProductsList();
-  } else if (pageId === 'chat') {
-    if (mainBottomNav) mainBottomNav.style.display = 'flex';
-    
-    console.log('OPENING CHAT PAGE');
-    
-    // Показываем сайдбар со списком
-    const sidebar = document.getElementById("chatsSidebar");
-    const chatWindow = document.getElementById("chatWindow");
-    
-    if (sidebar) {
-        sidebar.style.display = "flex";
-        sidebar.classList.remove('hide');
-    }
-    if (chatWindow) {
-        chatWindow.style.display = "none";
-        chatWindow.classList.remove('active');
-    }
-    
-    // Вызываем отображение списка
-    if (typeof renderDialogsList === 'function') {
-        console.log('Calling renderDialogsList');
-        renderDialogsList();
-    }
-    
-    // Очищаем окно сообщений
-    const messagesArea = document.getElementById("chatMessagesArea");
-    if (messagesArea) {
-        messagesArea.innerHTML = `
-            <div class="empty-messages">
-                <i class="fas fa-headset"></i>
-                <p>Чат с поддержкой</p>
-                <span>Напишите ваш вопрос, и мы поможем!</span>
-            </div>
-        `;
-    }
-  }
-  
-  // Обновляем активные кнопки
-  updateActiveNavButtons(pageId);
-  updateDesktopNavButtons(pageId);
-  
-  // Скрываем/показываем футер
-  updateFooterVisibility();
+  document.getElementById(pageId).classList.add('active');
 }
+
+// Показать модальное окно с информацией
+function showInfo(type) {
+  const messages = {
+    about: '📖 Плейнексис — маркетплейс цифровых товаров и подписок',
+    privacy: '🔒 Мы не передаём ваши данные третьим лицам',
+    info: 'ℹ️ Версия 1.0. Работает на Supabase + Render',
+    discounts: '🏷️ Следите за акциями в нашем Telegram-канале',
+    interesting: '✨ Скоро добавим новые категории товаров!'
+  };
+  alert(messages[type] || 'Информация');
+}
+
+// Переход по навигации
+function navigate(pageId) {
+  showPage(pageId);
+}
+
+// Показать детали товара
+function showProductDetail(productId) {
+  const product = window.allProducts?.find(p => p.id === productId);
+  if (!product) return;
+  
+  const detailContent = document.getElementById('detailContent');
+  if (detailContent) {
+    detailContent.innerHTML = `
+      <h3>${escapeHtml(product.title)}</h3>
+      <img src="${product.image_url || 'https://via.placeholder.com/300'}" style="max-width:100%">
+      <p><strong>Цена:</strong> ${product.price}</p>
+      <p><strong>Продавец:</strong> ${product.seller}</p>
+      <p><strong>Описание:</strong> ${product.description || 'Нет описания'}</p>
+      <button onclick="buyProduct('${product.id}')" class="btn-glow">Купить</button>
+    `;
+  }
+  
+  document.getElementById('detailPage').classList.add('active');
+}
+
+// Закрыть детали
+window.closeDetail = function() {
+  document.getElementById('detailPage').classList.remove('active');
+};
+
+// Купить товар
+async function buyProduct(productId) {
+  if (!window.currentUser) {
+    alert('Войдите в аккаунт для покупки');
+    return;
+  }
+  alert('Функция покупки в разработке');
+}
+
+// Глобальные функции
+window.showInfo = showInfo;
+window.navigate = navigate;
+window.showProductDetail = showProductDetail;
+window.buyProduct = buyProduct;
+window.createNewProduct = window.createNewProduct || function() {};
+window.deleteProduct = window.deleteProduct || function() {};
+
+console.log('✅ App.js загружен');
 
 function updateActiveNavButtons(pageId) {
   const navBtns = document.querySelectorAll('.nav-btn');
