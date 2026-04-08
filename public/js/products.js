@@ -263,10 +263,7 @@ async function createNewProduct() {
         originalPrice: originalPrice
     };
     
-    // ❌ НЕПРАВИЛЬНО: сохраняем в localStorage
-    let products = JSON.parse(localStorage.getItem('apex_products') || '[]');
-    products.unshift(newProduct);
-    localStorage.setItem('apex_products', JSON.stringify(products));
+
 }
 
 

@@ -124,146 +124,115 @@ function cancelCreateProduct() {
   removeProductImage();
   currentEditingProductId = null;
 }
-
-function createNewProduct() {
-  console.log('createNewProduct вызвана');
-  
-  const category = document.getElementById('productCategory').value;
-  const keywordId = document.getElementById('productKeywordSelect').value;
-  const title = document.getElementById('productTitle').value.trim();
-  const price = document.getElementById('productPrice').value.trim();
-  const discount = document.getElementById('productDiscount').value.trim();
-  const description = document.getElementById('productDescription').value.trim();
-  const instructions = document.getElementById('productInstructions').value.trim();
-  const contact = document.getElementById('productContact').value.trim();
-  const productType = document.querySelector('input[name="productType"]:checked')?.value || 'monthly';
-  const imageUrl = document.getElementById('productImageUrl').value;
-  
-  console.log('Поля:', { category, keywordId, title, price, description });
-  
-  if (!category) { showToast('Выберите категорию товара', 'error'); return; }
-  if (!keywordId) { showToast('Выберите сервис или ключевое слово', 'error'); return; }
-  if (!title) { showToast('Введите название товара', 'error'); return; }
-  if (title.length < 3) { showToast('Название должно быть не менее 3 символов', 'error'); return; }
-  if (!price) { showToast('Введите цену товара', 'error'); return; }
-  if (!description) { showToast('Введите описание товара', 'error'); return; }
-  if (description.length < 20) { showToast('Описание должно быть не менее 20 символов', 'error'); return; }
-  
-  let keywordName = '';
-  let keywordType = '';
-  const keywords = JSON.parse(localStorage.getItem('apex_keywords') || '[]');
-  const selectedKeyword = keywords.find(k => k.id === keywordId);
-  if (selectedKeyword) {
-    keywordName = selectedKeyword.name;
-    keywordType = selectedKeyword.type;
-  }
-  
-  const categoryLabels = {
-    'subscription': 'Подписки и сервисы',
-    'game': 'Игры и внутриигровые товары',
-    'software': 'Программы и лицензии',
-    'service': 'Услуги и консультации',
-    'other': 'Другие цифровые товары'
-  };
-  
-  const productTypeLabels = {
-    'monthly': 'Ежемесячная подписка',
-    'yearly': 'Годовая подписка',
-    'one-time': 'Одноразовая покупка',
-    'lifetime': 'Бессрочная / Lifetime'
-  };
-  
-  // Формируем полное описание с сохранением переносов строк и пробелов
-  let fullDescription = description;
-  
-  // Добавляем инструкцию если есть
-  if (instructions) {
-    fullDescription += '\n\n📖 Инструкция по активации:\n' + instructions;
-  }
-  
-  // Добавляем гарантию в конце (это добавится в описание товара)
-  fullDescription += '\n\nМоментальная выдача. Гарантия качества.';
-  
-  let finalPrice = price;
-  let discountText = discount || null;
-  let originalPrice = null;
-  
-  if (discount) {
-    const discountValue = parseFloat(discount);
-    const priceValue = parseFloat(price.replace(/[^0-9.-]/g, ''));
-    if (!isNaN(priceValue) && !isNaN(discountValue)) {
-      if (discount.includes('%')) {
-        const newPrice = priceValue * (1 - discountValue / 100);
-        finalPrice = Math.round(newPrice) + ' ₽';
-        originalPrice = price;
-      } else {
-        finalPrice = (priceValue - discountValue) + ' ₽';
-        originalPrice = price;
-      }
+async function createNewProduct() {
+    console.log('🔵 createNewProduct вызвана (НОВАЯ ВЕРСИЯ)');
+    
+    const category = document.getElementById('productCategory')?.value;
+    const keywordId = document.getElementById('productKeywordSelect')?.value;
+    const title = document.getElementById('productTitle')?.value.trim();
+    const price = document.getElementById('productPrice')?.value.trim();
+    const discount = document.getElementById('productDiscount')?.value.trim();
+    const description = document.getElementById('productDescription')?.value.trim();
+    const instructions = document.getElementById('productInstructions')?.value.trim();
+    const contact = document.getElementById('productContact')?.value.trim();
+    const productType = document.querySelector('input[name="productType"]:checked')?.value || 'monthly';
+    const imageUrl = document.getElementById('productImageUrl')?.value;
+    
+    console.log('Поля:', { category, keywordId, title, price, description });
+    
+    // Валидация
+    if (!category) { showToast('Выберите категорию товара', 'error'); return; }
+    if (!keywordId) { showToast('Выберите сервис или ключевое слово', 'error'); return; }
+    if (!title) { showToast('Введите название товара', 'error'); return; }
+    if (title.length < 3) { showToast('Название должно быть не менее 3 символов', 'error'); return; }
+    if (!price) { showToast('Введите цену товара', 'error'); return; }
+    if (!description) { showToast('Введите описание товара', 'error'); return; }
+    if (description.length < 20) { showToast('Описание должно быть не менее 20 символов', 'error'); return; }
+    
+    // Получаем имя ключевого слова (из API, а не из localStorage!)
+    let keywordName = '';
+    try {
+        const keywords = await API.getKeywords();
+        const selectedKeyword = keywords.find(k => k.id === keywordId);
+        if (selectedKeyword) {
+            keywordName = selectedKeyword.name;
+        }
+    } catch(e) {
+        console.error('Ошибка получения ключевого слова:', e);
     }
-  }
-  
-  const currentUser = localStorage.getItem('apex_user') || 'Гость';
-  let userId = localStorage.getItem('apex_user_id');
-  if (!userId) {
-    userId = 'user_' + Date.now();
-    localStorage.setItem('apex_user_id', userId);
-  }
-  
-  const newProduct = {
-    id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
-    title: title,
-    price: finalPrice,
-    originalPrice: originalPrice,
-    discount: discountText,
-    seller: currentUser,
-    sellerId: userId,
-    rating: 5.0,
-    sales: 0,
-    fullDesc: fullDescription,
-    positive: '100%',
-    responseTime: 'отвечает быстро',
-    imageUrl: imageUrl || 'https://picsum.photos/id/42/400/200',
-    keyword: keywordName,
-    keywordId: keywordId,
-    type: productTypeLabels[productType] || keywordType || 'Стандарт',
-    category: category,
-    categoryLabel: categoryLabels[category],
-    contact: contact || '',
-    createdAt: new Date().toISOString(),
-    status: 'active'
-  };
-  
-  console.log('Новый товар:', newProduct);
-  
-  let products = JSON.parse(localStorage.getItem('apex_products') || '[]');
-  console.log('Текущих товаров:', products.length);
-  
-  if (currentEditingProductId) {
-    const index = products.findIndex(p => p.id === currentEditingProductId);
-    if (index !== -1) {
-      products[index] = { ...products[index], ...newProduct };
-      showToast('✅ Товар успешно обновлен!', 'success');
+    
+    // Формируем полное описание
+    let fullDescription = description;
+    if (instructions) {
+        fullDescription += '\n\n📖 Инструкция по активации:\n' + instructions;
     }
-    currentEditingProductId = null;
-  } else {
-    products.unshift(newProduct);
-    showToast('✅ Товар успешно опубликован!', 'success');
-  }
-  
-  localStorage.setItem('apex_products', JSON.stringify(products));
-  console.log('Сохранено товаров:', products.length);
-  
-  if (window.productsArray) {
-    window.productsArray = products;
-    if (typeof filterProducts === 'function') filterProducts();
-  }
-  
-  cancelCreateProduct();
-  renderUserProductsList();
-  
-  if (typeof updateUserProductsCount === 'function') updateUserProductsCount();
-  if (typeof updateUserProductsCountFromStorage === 'function') updateUserProductsCountFromStorage();
+    fullDescription += '\n\nМоментальная выдача. Гарантия качества.';
+    
+    // Обработка цены со скидкой
+    let finalPrice = price;
+    let discountText = discount || null;
+    let originalPrice = null;
+    
+    if (discount) {
+        const discountValue = parseFloat(discount);
+        const priceValue = parseFloat(price.replace(/[^0-9.-]/g, ''));
+        if (!isNaN(priceValue) && !isNaN(discountValue)) {
+            if (discount.includes('%')) {
+                const newPrice = priceValue * (1 - discountValue / 100);
+                finalPrice = Math.round(newPrice) + ' ₽';
+                originalPrice = price;
+            } else {
+                finalPrice = (priceValue - discountValue) + ' ₽';
+                originalPrice = price;
+            }
+        }
+    }
+    
+    const currentUser = localStorage.getItem('apex_user') || 'Гость';
+    
+    // Формируем объект для отправки на сервер (без id, сервер сам создаст)
+    const newProduct = {
+        title: title,
+        price: finalPrice,
+        seller: currentUser,
+        keyword: keywordName,
+        image_url: imageUrl || 'https://picsum.photos/id/42/400/200',
+        description: fullDescription,
+        discount: discountText,
+        originalPrice: originalPrice,
+        contact: contact || '',
+        type: productType
+    };
+    
+    console.log('📤 Отправляем на сервер:', newProduct);
+    
+    try {
+        // ⭐⭐⭐ ОТПРАВЛЯЕМ НА СЕРВЕР ЧЕРЕЗ API ⭐⭐⭐
+        const savedProduct = await API.createProduct(newProduct);
+        
+        console.log('✅ Товар сохранен на сервере:', savedProduct);
+        showToast('✅ Товар успешно опубликован!', 'success');
+        
+        // Перезагружаем товары с сервера
+        await loadProducts();
+        
+        // Очищаем форму
+        cancelCreateProduct();
+        
+        // Обновляем список товаров пользователя
+        if (typeof renderUserProductsList === 'function') {
+            renderUserProductsList();
+        }
+        
+        // Обновляем счетчики
+        if (typeof updateUserProductsCount === 'function') {
+            updateUserProductsCount();
+        }
+        
+    } catch (error) {
+        console.error('❌ Ошибка при сохранении:', error);
+        showToast('❌ Ошибка: ' + error.message, 'error');
+    }
 }
 
 function renderUserProductsList() {
@@ -383,10 +352,7 @@ function editUserProduct(productId) {
 }
 
 function deleteUserProduct(productId) {
-  if (confirm('Удалить этот товар?')) {
-    let products = JSON.parse(localStorage.getItem('apex_products') || '[]');
-    products = products.filter(p => p.id !== productId);
-    localStorage.setItem('apex_products', JSON.stringify(products));
+
     
     if (window.productsArray) {
       window.productsArray = products;
@@ -400,7 +366,6 @@ function deleteUserProduct(productId) {
     
     showToast('✅ Товар удален', 'success');
   }
-}
 
 function showToast(message, type = 'success') {
   let toast = document.getElementById('customToast');
