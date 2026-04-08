@@ -167,13 +167,12 @@ function loadKeywordsForSelect() {
 
 async function loadProducts() {
     try {
-        const products = await window.API.getProducts();
+        const products = await API.getProducts();
         window.productsArray = products;
-        localStorage.setItem('apex_products', JSON.stringify(products));
         filterProducts();
         console.log('✅ Товары загружены с сервера');
     } catch (error) {
-        console.error('Ошибка загрузки:', error);
+        console.error('Ошибка:', error);
         // Fallback на localStorage
         const stored = localStorage.getItem("apex_products");
         if (stored) {

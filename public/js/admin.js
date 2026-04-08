@@ -1210,140 +1210,105 @@ function updateAppKeywordSelect() {
 
 // ==================== 8. УПРАВЛЕНИЕ ТОВАРАМИ ====================
 
-function loadAdminProducts() {
-  const container = document.getElementById("adminProductsList");
-  if (!container) return;
-  
-  const products = JSON.parse(localStorage.getItem("apex_products") || "[]");
-  
-  if (products.length === 0) {
-    container.innerHTML = "<div style='color: var(--text-muted); text-align: center; padding: 20px;'>Нет товаров</div>";
-    return;
-  }
-  
-  container.innerHTML = products.map(p => `
-    <div class="admin-product-item">
-      <div class="admin-product-info">
-        <div class="admin-product-title">
-          ${escapeHtml(p.title)}
-          ${p.discount ? `<span class="discount-badge">-${escapeHtml(p.discount)}</span>` : ''}
-        </div>
-        <div class="admin-product-price">
-          ${escapeHtml(p.price)}
-          ${p.originalPrice ? `<span style="text-decoration: line-through; color: var(--text-muted); font-size: 0.7rem; margin-left: 8px;">${escapeHtml(p.originalPrice)}</span>` : ''}
-        </div>
-        <div class="admin-product-keyword">${escapeHtml(p.keyword || 'Без категории')}</div>
-        <div class="admin-product-seller">Продавец: ${escapeHtml(p.seller)}</div>
-      </div>
-      <div class="admin-product-actions">
-        <button class="admin-edit-btn" onclick="editProduct('${p.id}')"><i class="fas fa-edit"></i></button>
-        <button class="admin-delete-btn" onclick="deleteProduct('${p.id}')"><i class="fas fa-trash"></i></button>
-      </div>
-    </div>
-  `).join('');
+async function loadAdminProducts() {
+    const container = document.getElementById("adminProductsList");
+    if (!container) return;
+    
+    try {
+        const products = await API.getProducts();
+        
+        if (products.length === 0) {
+            container.innerHTML = "<div style='color: var(--text-muted); text-align: center; padding: 20px;'>Нет товаров</div>";
+            return;
+        }
+        
+        container.innerHTML = products.map(p => `
+            <div class="admin-product-item">
+                <div class="admin-product-info">
+                    <div class="admin-product-title">${escapeHtml(p.title)}</div>
+                    <div class="admin-product-price">${escapeHtml(p.price)}</div>
+                    <div class="admin-product-keyword">${escapeHtml(p.keyword || 'Без категории')}</div>
+                    <div class="admin-product-seller">Продавец: ${escapeHtml(p.seller)}</div>
+                </div>
+                <div class="admin-product-actions">
+                    <button class="admin-edit-btn" onclick="editProduct('${p.id}')"><i class="fas fa-edit"></i></button>
+                    <button class="admin-delete-btn" onclick="deleteProduct('${p.id}')"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+        `).join('');
+        
+        // Обновляем счетчик
+        const countSpan = document.getElementById("adminProductsCount");
+        if (countSpan) countSpan.innerText = products.length;
+        
+    } catch (error) {
+        console.error('Ошибка загрузки товаров:', error);
+        container.innerHTML = "<div style='color: red;'>Ошибка загрузки товаров</div>";
+    }
 }
 
-function createAdminProduct() {
-  const keywordId = document.getElementById("postKeyword")?.value;
-  const title = document.getElementById("postTitle")?.value.trim();
-  const price = document.getElementById("postPrice")?.value.trim();
-  const discount = document.getElementById("postDiscount")?.value.trim();
-  const description = document.getElementById("postDescription")?.value.trim();
-  const imageUrl = document.getElementById("postImageUrl")?.value.trim();
-  const seller = document.getElementById("postSeller")?.value.trim();
-  const productType = document.getElementById("postType")?.value.trim();
-  
-  if (!keywordId) {
-    alert("Выберите ключевое слово/категорию");
-    return;
-  }
-  if (!title) {
-    alert("Введите название товара");
-    return;
-  }
-  if (!price) {
-    alert("Введите цену");
-    return;
-  }
-  
-  const selectedKeyword = keywords.find(k => k.id === keywordId);
-  const keywordName = selectedKeyword ? selectedKeyword.name : "Без категории";
-  const keywordType = selectedKeyword ? selectedKeyword.type : "";
-  
-  let finalPrice = price;
-  let discountText = "";
-  if (discount) {
-    discountText = discount;
-    if (discount.includes("%")) {
-      const percent = parseFloat(discount);
-      const priceNum = parseFloat(price.replace(/[^0-9.-]/g, ''));
-      if (!isNaN(priceNum) && !isNaN(percent)) {
-        const newPrice = priceNum * (1 - percent / 100);
-        finalPrice = `${Math.round(newPrice)} ${price.replace(/[0-9.-]/g, '').trim() || '₽'}`;
-      }
+async function createAdminProduct() {
+    const keywordId = document.getElementById("postKeyword")?.value;
+    const title = document.getElementById("postTitle")?.value.trim();
+    const price = document.getElementById("postPrice")?.value.trim();
+    const discount = document.getElementById("postDiscount")?.value.trim();
+    const description = document.getElementById("postDescription")?.value.trim();
+    const imageUrl = document.getElementById("postImageUrl")?.value.trim();
+    const seller = document.getElementById("postSeller")?.value.trim() || window.currentUser || "Admin";
+    
+    if (!keywordId) { alert("Выберите ключевое слово"); return; }
+    if (!title) { alert("Введите название"); return; }
+    if (!price) { alert("Введите цену"); return; }
+    
+    // Находим выбранное ключевое слово
+    const selectedKeyword = keywords.find(k => k.id === keywordId);
+    const keywordName = selectedKeyword ? selectedKeyword.name : "Без категории";
+    
+    const newProduct = {
+        id: Date.now().toString(),
+        title: title,
+        price: price,
+        discount: discount || null,
+        seller: seller,
+        keyword: keywordName,
+        keyword_id: keywordId,
+        image_url: imageUrl || "https://picsum.photos/id/42/400/200",
+        description: description || "Новый товар от администратора",
+        status: "active"
+    };
+    
+    try {
+        // ⭐ ОТПРАВЛЯЕМ НА СЕРВЕР
+        const saved = await API.createProduct(newProduct);
+        console.log('✅ Товар сохранён в Supabase:', saved);
+        
+        // Очищаем форму
+        document.getElementById("postTitle").value = "";
+        document.getElementById("postPrice").value = "";
+        document.getElementById("postDescription").value = "";
+        document.getElementById("postImageUrl").value = "";
+        
+        // Перезагружаем список товаров
+        loadAdminProducts();
+        showToast("✅ Товар добавлен и виден всем пользователям!", "success");
+    } catch (error) {
+        console.error('Ошибка:', error);
+        showToast("❌ Ошибка при сохранении товара", "error");
     }
-  }
-  
-  const fullDescription = description || "Новый товар от администратора";
-  
-  const newProduct = {
-    id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
-    title: title,
-    price: finalPrice,
-    originalPrice: discount ? price : null,
-    discount: discountText || null,
-    seller: seller || window.currentUser || "Admin",
-    rating: 5.0,
-    sales: 0,
-    fullDesc: `${fullDescription}\n\nМоментальная выдача. Гарантия качества.`,
-    positive: "100%",
-    responseTime: "отвечает быстро",
-    imageUrl: imageUrl || "https://picsum.photos/id/42/400/200",
-    keyword: keywordName,
-    keywordId: keywordId,
-    type: productType || keywordType || "Стандарт",
-    createdAt: new Date().toISOString()
-  };
-  
-  let products = JSON.parse(localStorage.getItem("apex_products") || "[]");
-  products.unshift(newProduct);
-  localStorage.setItem("apex_products", JSON.stringify(products));
-  
-  if (window.productsArray) {
-    window.productsArray = products;
-    if (typeof filterProducts === 'function') filterProducts();
-  }
-  
-  loadAdminProducts();
-  updateAdminStats();
-  
-  document.getElementById("postTitle").value = "";
-  document.getElementById("postPrice").value = "";
-  document.getElementById("postDiscount").value = "";
-  document.getElementById("postDescription").value = "";
-  document.getElementById("postImageUrl").value = "";
-  document.getElementById("postSeller").value = "";
-  document.getElementById("postKeyword").value = "";
-  document.getElementById("postType").value = "";
-  
-  showToast("✅ Товар успешно опубликован!", "success");
 }
 
-function deleteProduct(productId) {
-  if (confirm("Удалить этот товар?")) {
-    let products = JSON.parse(localStorage.getItem("apex_products") || "[]");
-    products = products.filter(p => p.id !== productId);
-    localStorage.setItem("apex_products", JSON.stringify(products));
-    
-    if (window.productsArray) {
-      window.productsArray = products;
-      if (typeof filterProducts === 'function') filterProducts();
+async function deleteProduct(productId) {
+    if (confirm("Удалить этот товар?")) {
+        try {
+            await API.deleteProduct(productId);
+            showToast("✅ Товар удалён", "success");
+            loadAdminProducts(); // Обновляем список
+            loadProducts(); // Обновляем главную страницу
+        } catch (error) {
+            console.error('Ошибка удаления:', error);
+            showToast("❌ Ошибка при удалении", "error");
+        }
     }
-    
-    loadAdminProducts();
-    updateAdminStats();
-    showToast("Товар удалён", "success");
-  }
 }
 
 function editProduct(productId) {
