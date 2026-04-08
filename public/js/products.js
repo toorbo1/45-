@@ -89,50 +89,49 @@ function formatPriceWithDiscount(product) {
     discountText: null
   };
 }
-
-// ОСНОВНАЯ ФУНКЦИЯ РЕНДЕРИНГА ТОВАРОВ (КОМПАКТНАЯ ВЕРСИЯ)
-function renderProductGrid(products) {
-  const container = document.getElementById("productsGrid");
-  if (!container) return;
-  
-  if (products.length === 0) {
-    container.innerHTML = "<div class='empty-state'><i class='fas fa-search'></i><p>Ничего не найдено</p></div>";
-    updateProductCount(0);
-    return;
-  }
-  
-  let html = "";
-  products.forEach(prod => {
-    const priceInfo = formatPriceWithDiscount(prod);
-    const ratingInfo = getProductRating(prod);
-    let discountText = priceInfo.discountText || "";
+async function renderProductGrid(products) {
+    const container = document.getElementById("productsGrid");
+    if (!container) return;
     
-    html += `
-      <div class="product-card" onclick="window.openProductDetailById('${prod.id}')">
-        <div class="card-image">
-          <img src="${escapeHtml(prod.imageUrl || 'https://picsum.photos/id/42/400/300')}" 
-               alt="${escapeHtml(prod.title)}"
-               loading="lazy"
-               onerror="this.src='https://picsum.photos/id/42/400/300'">
-          ${priceInfo.hasDiscount ? `<span class="discount-badge">-${discountText}</span>` : ''}
-        </div>
-        <div class="card-body">
-          <div class="price-wrapper">
-            <span class="current-price">${escapeHtml(priceInfo.currentPrice)}</span>
-            ${priceInfo.hasDiscount ? `<span class="old-price">${escapeHtml(priceInfo.oldPrice)}</span>` : ''}
-          </div>
-          <h3 class="product-title">${escapeHtml(prod.title)}</h3>
-          <div class="rating">
-            <span class="stars">${ratingInfo.starsHtml}</span>
-            <span class="reviews-count">${ratingInfo.reviewsCount} отзывов</span>
-          </div>
-        </div>
-      </div>
-    `;
-  });
-  
-  container.innerHTML = html;
-  updateProductCount(products.length);
+    // Если products не переданы, берем с сервера
+    if (!products) {
+        products = await API.getProducts();
+    }
+    
+    if (products.length === 0) {
+        container.innerHTML = "<div class='empty-state'><i class='fas fa-search'></i><p>Ничего не найдено</p></div>";
+        updateProductCount(0);
+        return;
+    }
+    
+    let html = "";
+    products.forEach(prod => {
+        html += `
+            <div class="product-card" onclick="window.openProductDetailById('${prod.id}')">
+                <div class="card-image">
+                    <img src="${escapeHtml(prod.image_url || 'https://picsum.photos/id/42/400/300')}" 
+                         alt="${escapeHtml(prod.title)}"
+                         loading="lazy"
+                         onerror="this.src='https://picsum.photos/id/42/400/300'">
+                    ${prod.discount ? `<span class="discount-badge">-${prod.discount}</span>` : ''}
+                </div>
+                <div class="card-body">
+                    <div class="price-wrapper">
+                        <span class="current-price">${escapeHtml(prod.price)}</span>
+                        ${prod.original_price ? `<span class="old-price">${escapeHtml(prod.original_price)}</span>` : ''}
+                    </div>
+                    <h3 class="product-title">${escapeHtml(prod.title)}</h3>
+                    <div class="rating">
+                        <span class="stars">★★★★★</span>
+                        <span class="reviews-count">${prod.sales || 0} отзывов</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+    updateProductCount(products.length);
 }
 
 function updateProductCount(count) {

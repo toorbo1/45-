@@ -348,47 +348,44 @@ function setupBalanceClick() {
     }
   }
   
-  function loadUserProductsInProfile() {
+ async function loadUserProductsInProfile() {
     const container = document.getElementById('profileProductsList');
     if (!container) return;
-    const products = JSON.parse(localStorage.getItem('apex_products') || '[]');
-    const userProducts = products.filter(p => p.seller === window.currentUser);
     
+    const currentUser = localStorage.getItem('apex_user') || 'Гость';
+    // ⭐ БЕРЕМ С СЕРВЕРА ⭐
+    const products = await API.getProducts();
+    const userProducts = products.filter(p => p.seller === currentUser);
+    
+    // Обновляем счетчик товаров
     if (window.userProfile) {
-      window.userProfile.productsCount = userProducts.length;
-      localStorage.setItem("apex_profile", JSON.stringify(window.userProfile));
-      updateNewProfileStats(window.userProfile);
+        window.userProfile.productsCount = userProducts.length;
+        localStorage.setItem("apex_profile", JSON.stringify(window.userProfile));
+        if (typeof updateNewProfileStats === 'function') updateNewProfileStats(window.userProfile);
     }
     
-    updateActiveCompletedCounts();
-    
     if (userProducts.length === 0) {
-      container.innerHTML = `
-        <div class="empty-products">
-          <i class="fas fa-box-open"></i>
-          <p>Нет товаров</p>
-          <button class="btn-glow sell-btn" onclick="window.openModal()">Выставить товар</button>
-        </div>
-      `;
-      return;
+        container.innerHTML = `
+            <div class="empty-products">
+                <i class="fas fa-box-open"></i>
+                <p>Нет товаров</p>
+                <button class="btn-glow sell-btn" onclick="window.openModal()">Выставить товар</button>
+            </div>
+        `;
+        return;
     }
     
     container.innerHTML = userProducts.map(product => `
-      <div class="profile-product-item" style="position: relative;">
-        <img class="profile-product-img" src="${escapeHtml(product.imageUrl || 'https://picsum.photos/id/42/50/50')}" alt="${escapeHtml(product.title)}" onclick="window.openProductDetailById('${product.id}')">
-        <div class="profile-product-info" onclick="window.openProductDetailById('${product.id}')" style="cursor: pointer;">
-          <div class="profile-product-title">${escapeHtml(product.title)}</div>
-          <div class="profile-product-price">${escapeHtml(product.price)}</div>
-          <div class="profile-product-status ${product.status === 'completed' ? 'status-completed' : 'status-active'}">
-            ${product.status === 'completed' ? '● Завершён' : '● Активен'}
-          </div>
+        <div class="profile-product-item" style="position: relative; cursor: pointer;" onclick="window.openProductDetailById('${product.id}')">
+            <img class="profile-product-img" src="${escapeHtml(product.image_url || 'https://picsum.photos/id/42/50/50')}" alt="${escapeHtml(product.title)}">
+            <div class="profile-product-info">
+                <div class="profile-product-title">${escapeHtml(product.title)}</div>
+                <div class="profile-product-price">${escapeHtml(product.price)}</div>
+                <div class="profile-product-status status-active">● Активен</div>
+            </div>
         </div>
-        <button class="edit-product-btn" onclick="editProductFromProfile('${product.id}')">
-          <i class="fas fa-edit"></i>
-        </button>
-      </div>
     `).join('');
-  }
+}
   
   function loadActiveProducts() {
     const container = document.getElementById('profileProductsList');

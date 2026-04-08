@@ -130,105 +130,139 @@ function setupChatEventListeners() {
   }
 }
 
-// app.js
 // ЕДИНАЯ ФУНКЦИЯ ПОКАЗА СТРАНИЦЫ
-function showPage(pageId) {
-  console.log('Showing page:', pageId);
-  
-  // Скрываем ВСЕ страницы
-  const allPages = document.querySelectorAll('.page');
-  allPages.forEach(page => {
-    page.classList.remove('active');
-    page.style.display = 'none';
-  });
-  
-  // Показываем нужную
-  const targetPage = document.getElementById(pageId);
-  if (targetPage) {
-    targetPage.style.display = 'block';
-    targetPage.classList.add('active');
-    console.log('Activated page:', pageId);
-  } else {
-    console.error('Page not found:', pageId);
-  }
-  
-  // === НОВЫЙ КОД: ПРОКРУТКА ВВЕРХ ДЛЯ ВСЕХ СТРАНИЦ ===
-  // Прокручиваем окно в самое начало
-  window.scrollTo({
-    top: 0,
-    left: 0,
-    behavior: 'smooth' // или 'auto' для мгновенной прокрутки
-  });
-  
-  // Специальная обработка для страницы чата (прокрутка после загрузки сообщений)
-  if (pageId === 'chat') {
-    // Небольшая задержка, чтобы DOM чата успел обновиться
-    setTimeout(() => {
-      const messagesArea = document.getElementById('chatMessagesArea');
-      if (messagesArea) {
-        messagesArea.scrollTop = 0; // Прокручиваем сообщения в начало
-      }
-      // Дополнительная прокрутка окна на всякий случай
-      window.scrollTo(0, 0);
-    }, 100);
-  }
-  
-  // Управление нижними меню
-  const mainBottomNav = document.getElementById('bottomNav');
-  
-  if (pageId === 'profile') {
-    if (mainBottomNav) mainBottomNav.style.display = 'flex';
-    if (typeof loadUserProductsInProfile === 'function') loadUserProductsInProfile();
-    if (typeof updateProfileUI === 'function') updateProfileUI();
-    if (typeof updateNewProfileStats === 'function' && window.userProfile) {
-      updateNewProfileStats(window.userProfile);
-    }
-  } else if (pageId === 'products-manage') {
-    if (mainBottomNav) mainBottomNav.style.display = 'flex';
-    if (typeof renderUserProductsList === 'function') renderUserProductsList();
-  } else if (pageId === 'chat') {
-    if (mainBottomNav) mainBottomNav.style.display = 'flex';
+async function showPage(pageId) {
+    console.log('Showing page:', pageId);
     
-    console.log('OPENING CHAT PAGE');
+    // Скрываем ВСЕ страницы
+    const allPages = document.querySelectorAll('.page');
+    allPages.forEach(page => {
+        page.classList.remove('active');
+        page.style.display = 'none';
+    });
     
-    // Показываем сайдбар со списком
-    const sidebar = document.getElementById("chatsSidebar");
-    const chatWindow = document.getElementById("chatWindow");
-    
-    if (sidebar) {
-        sidebar.style.display = "flex";
-        sidebar.classList.remove('hide');
-    }
-    if (chatWindow) {
-        chatWindow.style.display = "none";
-        chatWindow.classList.remove('active');
+    // Показываем нужную
+    const targetPage = document.getElementById(pageId);
+    if (targetPage) {
+        targetPage.style.display = 'block';
+        targetPage.classList.add('active');
+        console.log('Activated page:', pageId);
+    } else {
+        console.error('Page not found:', pageId);
     }
     
-    // Вызываем отображение списка
-    if (typeof renderDialogsList === 'function') {
-        console.log('Calling renderDialogsList');
-        renderDialogsList();
+    // Прокручиваем окно в самое начало
+    window.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: 'smooth'
+    });
+    
+    // Специальная обработка для страницы чата
+    if (pageId === 'chat') {
+        setTimeout(() => {
+            const messagesArea = document.getElementById('chatMessagesArea');
+            if (messagesArea) {
+                messagesArea.scrollTop = 0;
+            }
+            window.scrollTo(0, 0);
+        }, 100);
     }
     
-    // Очищаем окно сообщений
-    const messagesArea = document.getElementById("chatMessagesArea");
-    if (messagesArea) {
-        messagesArea.innerHTML = `
-            <div class="empty-messages">
-                <i class="fas fa-headset"></i>
-                <p>Чат с поддержкой</p>
-                <span>Напишите ваш вопрос, и мы поможем!</span>
-            </div>
-        `;
+    // Управление нижними меню
+    const mainBottomNav = document.getElementById('bottomNav');
+    
+    // ============ ОБРАБОТКА РАЗНЫХ СТРАНИЦ ============
+    
+    if (pageId === 'profile') {
+        if (mainBottomNav) mainBottomNav.style.display = 'flex';
+        
+        // ⭐ ЗАГРУЖАЕМ ТОВАРЫ ПРОФИЛЯ С СЕРВЕРА ⭐
+        if (typeof loadUserProductsInProfile === 'function') {
+            await loadUserProductsInProfile();
+        }
+        
+        if (typeof updateProfileUI === 'function') updateProfileUI();
+        if (typeof updateNewProfileStats === 'function' && window.userProfile) {
+            updateNewProfileStats(window.userProfile);
+        }
+        
+        // Обновляем количество товаров в профиле
+        if (typeof updateUserProductsCount === 'function') {
+            updateUserProductsCount();
+        }
     }
-  }
-  
-  // Обновляем активные кнопки
-  updateActiveNavButtons(pageId);
-  updateDesktopNavButtons(pageId);
-  
-  // Скрываем/показываем футер
-  updateFooterVisibility();
+    
+    else if (pageId === 'products-manage') {
+        if (mainBottomNav) mainBottomNav.style.display = 'flex';
+        
+        // ⭐ ЗАГРУЖАЕМ СПИСОК ТОВАРОВ ПОЛЬЗОВАТЕЛЯ С СЕРВЕРА ⭐
+        if (typeof renderUserProductsList === 'function') {
+            await renderUserProductsList();
+        }
+    }
+    
+    else if (pageId === 'chat') {
+        if (mainBottomNav) mainBottomNav.style.display = 'flex';
+        
+        console.log('OPENING CHAT PAGE');
+        
+        const sidebar = document.getElementById("chatsSidebar");
+        const chatWindow = document.getElementById("chatWindow");
+        
+        if (sidebar) {
+            sidebar.style.display = "flex";
+            sidebar.classList.remove('hide');
+        }
+        if (chatWindow) {
+            chatWindow.style.display = "none";
+            chatWindow.classList.remove('active');
+        }
+        
+        if (typeof renderDialogsList === 'function') {
+            console.log('Calling renderDialogsList');
+            renderDialogsList();
+        }
+        
+        const messagesArea = document.getElementById("chatMessagesArea");
+        if (messagesArea) {
+            messagesArea.innerHTML = `
+                <div class="empty-messages">
+                    <i class="fas fa-headset"></i>
+                    <p>Чат с поддержкой</p>
+                    <span>Напишите ваш вопрос, и мы поможем!</span>
+                </div>
+            `;
+        }
+    }
+    
+    else if (pageId === 'home') {
+        if (mainBottomNav) mainBottomNav.style.display = 'flex';
+        
+        // ⭐ ПРИ ВОЗВРАТЕ НА ГЛАВНУЮ ОБНОВЛЯЕМ ТОВАРЫ ⭐
+        if (typeof loadProducts === 'function') {
+            await loadProducts();
+        }
+    }
+    
+    else if (pageId === 'admin') {
+        if (mainBottomNav) mainBottomNav.style.display = 'flex';
+        
+        // ⭐ ОБНОВЛЯЕМ АДМИН-СТАТИСТИКУ ПРИ ОТКРЫТИИ ⭐
+        if (typeof loadAdminProducts === 'function') {
+            await loadAdminProducts();
+        }
+        if (typeof updateAdminStats === 'function') {
+            updateAdminStats();
+        }
+    }
+    
+    // Обновляем активные кнопки
+    updateActiveNavButtons(pageId);
+    updateDesktopNavButtons(pageId);
+    
+    // Скрываем/показываем футер
+    updateFooterVisibility();
 }
 
 function updateActiveNavButtons(pageId) {
@@ -394,41 +428,43 @@ function loadCompletedProducts() {
   `;
 }
 
-function loadUserProductsInProfile() {
-  const container = document.getElementById('profileProductsList');
-  if (!container) return;
-  const currentUser = localStorage.getItem('apex_user') || 'Гость';
-  const products = JSON.parse(localStorage.getItem('apex_products') || '[]');
-  const userProducts = products.filter(p => p.seller === currentUser);
-  
-  // Обновляем счетчик товаров
-  if (window.userProfile) {
-    window.userProfile.productsCount = userProducts.length;
-    localStorage.setItem("apex_profile", JSON.stringify(window.userProfile));
-    if (typeof updateNewProfileStats === 'function') updateNewProfileStats(window.userProfile);
-  }
-  
-  if (userProducts.length === 0) {
-    container.innerHTML = `
-      <div class="empty-products">
-        <i class="fas fa-box-open"></i>
-        <p>Нет товаров</p>
-        <button class="btn-glow sell-btn" onclick="window.openModal()">Выставить товар</button>
-      </div>
-    `;
-    return;
-  }
-  
-  container.innerHTML = userProducts.map(product => `
-    <div class="profile-product-item" style="position: relative; cursor: pointer;" onclick="window.openProductDetailById('${product.id}')">
-      <img class="profile-product-img" src="${escapeHtml(product.imageUrl || 'https://picsum.photos/id/42/50/50')}" alt="${escapeHtml(product.title)}">
-      <div class="profile-product-info">
-        <div class="profile-product-title">${escapeHtml(product.title)}</div>
-        <div class="profile-product-price">${escapeHtml(product.price)}</div>
-        <div class="profile-product-status status-active">● Активен</div>
-      </div>
-    </div>
-  `).join('');
+async function loadUserProductsInProfile() {
+    const container = document.getElementById('profileProductsList');
+    if (!container) return;
+    
+    const currentUser = localStorage.getItem('apex_user') || 'Гость';
+    // ⭐ БЕРЕМ С СЕРВЕРА ⭐
+    const products = await API.getProducts();
+    const userProducts = products.filter(p => p.seller === currentUser);
+    
+    // Обновляем счетчик товаров
+    if (window.userProfile) {
+        window.userProfile.productsCount = userProducts.length;
+        localStorage.setItem("apex_profile", JSON.stringify(window.userProfile));
+        if (typeof updateNewProfileStats === 'function') updateNewProfileStats(window.userProfile);
+    }
+    
+    if (userProducts.length === 0) {
+        container.innerHTML = `
+            <div class="empty-products">
+                <i class="fas fa-box-open"></i>
+                <p>Нет товаров</p>
+                <button class="btn-glow sell-btn" onclick="window.openModal()">Выставить товар</button>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = userProducts.map(product => `
+        <div class="profile-product-item" style="position: relative; cursor: pointer;" onclick="window.openProductDetailById('${product.id}')">
+            <img class="profile-product-img" src="${escapeHtml(product.image_url || 'https://picsum.photos/id/42/50/50')}" alt="${escapeHtml(product.title)}">
+            <div class="profile-product-info">
+                <div class="profile-product-title">${escapeHtml(product.title)}</div>
+                <div class="profile-product-price">${escapeHtml(product.price)}</div>
+                <div class="profile-product-status status-active">● Активен</div>
+            </div>
+        </div>
+    `).join('');
 }
 
 function escapeHtml(str) {

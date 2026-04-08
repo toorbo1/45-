@@ -235,42 +235,43 @@ async function createNewProduct() {
     }
 }
 
-function renderUserProductsList() {
-  const container = document.getElementById('userProductsList');
-  if (!container) return;
-  
-  const currentUser = localStorage.getItem('apex_user') || 'Гость';
-  const products = JSON.parse(localStorage.getItem('apex_products') || '[]');
-  const userProducts = products.filter(p => p.seller === currentUser);
-  
-  const totalSpan = document.getElementById('userProductsTotalCount');
-  if (totalSpan) totalSpan.innerText = `Всего: ${userProducts.length}`;
-  
-  if (userProducts.length === 0) {
-    container.innerHTML = `
-      <div class="empty-products-state">
-        <i class="fas fa-box-open"></i>
-        <p>У вас пока нет товаров</p>
-        <p style="font-size: 0.8rem; margin-top: 8px;">Нажмите "Добавить товар", чтобы выставить подписку или цифровой товар на продажу</p>
-      </div>
-    `;
-    return;
-  }
-  
-  container.innerHTML = userProducts.map(product => `
-    <div class="product-item-card">
-      <img class="product-item-img" src="${escapeHtml(product.imageUrl || 'https://picsum.photos/id/42/60/60')}" alt="${escapeHtml(product.title)}" onclick="openProductDetailById('${product.id}')" style="cursor: pointer;">
-      <div class="product-item-info" onclick="openProductDetailById('${product.id}')" style="cursor: pointer;">
-        <div class="product-item-title">${escapeHtml(product.title)}</div>
-        <div class="product-item-price">${escapeHtml(product.price)}</div>
-        <div class="product-item-keyword">${escapeHtml(product.keyword || 'Без категории')}</div>
-      </div>
-      <div class="product-item-actions">
-        <button class="edit-product-btn" onclick="editUserProduct('${product.id}')"><i class="fas fa-edit"></i></button>
-        <button class="delete-product-btn" onclick="deleteUserProduct('${product.id}')"><i class="fas fa-trash"></i></button>
-      </div>
-    </div>
-  `).join('');
+async function renderUserProductsList() {
+    const container = document.getElementById('userProductsList');
+    if (!container) return;
+    
+    const currentUser = localStorage.getItem('apex_user') || 'Гость';
+    // ⭐ БЕРЕМ С СЕРВЕРА, А НЕ ИЗ LOCALSTORAGE ⭐
+    const products = await API.getProducts();
+    const userProducts = products.filter(p => p.seller === currentUser);
+    
+    const totalSpan = document.getElementById('userProductsTotalCount');
+    if (totalSpan) totalSpan.innerText = `Всего: ${userProducts.length}`;
+    
+    if (userProducts.length === 0) {
+        container.innerHTML = `
+            <div class="empty-products-state">
+                <i class="fas fa-box-open"></i>
+                <p>У вас пока нет товаров</p>
+                <p style="font-size: 0.8rem; margin-top: 8px;">Нажмите "Добавить товар", чтобы выставить подписку или цифровой товар на продажу</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = userProducts.map(product => `
+        <div class="product-item-card">
+            <img class="product-item-img" src="${escapeHtml(product.image_url || 'https://picsum.photos/id/42/60/60')}" alt="${escapeHtml(product.title)}" onclick="openProductDetailById('${product.id}')" style="cursor: pointer;">
+            <div class="product-item-info" onclick="openProductDetailById('${product.id}')" style="cursor: pointer;">
+                <div class="product-item-title">${escapeHtml(product.title)}</div>
+                <div class="product-item-price">${escapeHtml(product.price)}</div>
+                <div class="product-item-keyword">${escapeHtml(product.keyword || 'Без категории')}</div>
+            </div>
+            <div class="product-item-actions">
+                <button class="edit-product-btn" onclick="editUserProduct('${product.id}')"><i class="fas fa-edit"></i></button>
+                <button class="delete-product-btn" onclick="deleteUserProduct('${product.id}')"><i class="fas fa-trash"></i></button>
+            </div>
+        </div>
+    `).join('');
 }
 
 function editUserProduct(productId) {
