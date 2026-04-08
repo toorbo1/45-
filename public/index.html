@@ -896,7 +896,19 @@
 </footer>
 
 <!-- ==================== СКРИПТЫ ==================== -->
- <script src="js/api.js"></script>
+<script src="js/api.js"></script>
+<script>
+// Автоматическая загрузка товаров при загрузке страницы
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const products = await API.getProducts();
+        if (products.length > 0) {
+            localStorage.setItem('apex_products', JSON.stringify(products));
+            if (typeof loadProducts === 'function') loadProducts();
+        }
+    } catch(e) { console.error(e); }
+});
+</script>
 <script src="js/auth.js"></script>
 <script src="js/slider.js"></script>
 <script src="js/products.js"></script>
