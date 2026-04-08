@@ -11,6 +11,7 @@ const { createClient } = require('@supabase/supabase-js');
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
+
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
@@ -20,7 +21,7 @@ const io = socketIo(server, {
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());  
+app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static('uploads'));
@@ -28,65 +29,7 @@ app.use('/uploads', express.static('uploads'));
 // Создаём папки
 if (!fs.existsSync('./uploads')) fs.mkdirSync('./uploads');
 
-// Загрузка/сохранение БД
-function loadDB() {
-  try {
-    return JSON.parse(fs.readFileSync('./database.json', 'utf8'));
-  } catch {
-    const defaultDB = {
-      users: [],
-      products: [],
-      keywords: [],
-      gameBlocks: [],
-      appBlocks: [],
-      messages: []
-    };
-    saveDB(defaultDB);
-    return defaultDB;
-  }
-}
-
-function saveDB(data) {
-  fs.writeFileSync('./database.json', JSON.stringify(data, null, 2));
-}
-
-// Инициализация демо-данных
-function initDemoData() {
-  const db = loadDB();
-  
-  if (db.keywords.length === 0) {
-    db.keywords = [
-      { id: uuidv4(), name: "Steam", type: "Premium" },
-      { id: uuidv4(), name: "Discord", type: "Nitro" },
-      { id: uuidv4(), name: "Netflix", type: "4K" },
-      { id: uuidv4(), name: "Spotify", type: "Premium" },
-      { id: uuidv4(), name: "YouTube", type: "Premium" }
-    ];
-  }
-  
-  if (db.gameBlocks.length === 0) {
-    db.gameBlocks = [
-      { id: uuidv4(), name: "Steam", keywordId: db.keywords[0]?.id || "", icon: "fab fa-steam", imageUrl: "" },
-      { id: uuidv4(), name: "Discord", keywordId: db.keywords[1]?.id || "", icon: "fab fa-discord", imageUrl: "" },
-      { id: uuidv4(), name: "Netflix", keywordId: db.keywords[2]?.id || "", icon: "fas fa-tv", imageUrl: "" }
-    ];
-  }
-  
-  if (db.products.length === 0) {
-    db.products = [
-      { id: uuidv4(), title: "Steam Gift Card 1000₽", price: "1000 ₽", seller: "Admin", sellerId: "admin", keywordId: db.keywords[0]?.id, keyword: "Steam", imageUrl: "https://picsum.photos/id/104/400/200", fullDesc: "Моментальная выдача" },
-      { id: uuidv4(), title: "Discord Nitro 1 месяц", price: "450 ₽", seller: "Admin", sellerId: "admin", keywordId: db.keywords[1]?.id, keyword: "Discord", imageUrl: "https://picsum.photos/id/106/400/200", fullDesc: "Подписка на месяц" }
-    ];
-  }
-  
-  saveDB(db);
-}
-
-initDemoData();
-
-// ========== API ==========
-
-// Загрузка изображений
+// ========== ЗАГРУЗКА ИЗОБРАЖЕНИЙ ==========
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, './uploads'),
   filename: (req, file, cb) => {
@@ -95,7 +38,7 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ 
+const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
@@ -108,192 +51,472 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
   res.json({ success: true, url: `/uploads/${req.file.filename}` });
 });
-// ТЕСТОВЫЙ МАРШРУТ ДЛЯ ПРОВЕРКИ БАЗЫ ДАННЫХ
-app.get('/api/test-db', async (req, res) => {
-  try {
-    // Проверяем подключение к Supabase
-    const { data, error } = await supabase.from('keywords').select('*');
+
+// ========== ИНИЦИАЛИЗАЦИЯ ТАБЛИЦ В SUPABASE ==========
+async function initSupabaseTables() {
+  // Проверяем и создаем таблицы через SQL (нужно выполнить один раз в Supabase SQL Editor)
+  console.log('✅ Используется Supabase');
+  
+  // Проверяем наличие данных
+  const { data: keywords } = await supabase.from('keywords').select('*');
+  
+  if (!keywords || keywords.length === 0) {
+    console.log('📦 Загрузка демо-данных в Supabase...');
     
-    if (error) {
-      console.error('Supabase error:', error);
-      return res.status(500).json({ 
-        error: 'Ошибка подключения к БД', 
-        details: error.message 
-      });
+    // Добавляем ключевые слова
+    const demoKeywords = [
+      { id: uuidv4(), name: "Steam", type: "Premium" },
+      { id: uuidv4(), name: "Discord", type: "Nitro" },
+      { id: uuidv4(), name: "Netflix", type: "4K" },
+      { id: uuidv4(), name: "Spotify", type: "Premium" },
+      { id: uuidv4(), name: "YouTube", type: "Premium" }
+    ];
+    
+    for (const kw of demoKeywords) {
+      await supabase.from('keywords').insert(kw);
     }
     
-    res.json({ 
-      success: true, 
-      message: 'База данных работает!',
-      count: data.length,
-      keywords: data 
+    // Добавляем блоки игр
+    const gameBlocks = [
+      { id: uuidv4(), name: "Steam", keyword_id: demoKeywords[0].id, icon: "fab fa-steam", image_url: "" },
+      { id: uuidv4(), name: "Discord", keyword_id: demoKeywords[1].id, icon: "fab fa-discord", image_url: "" },
+      { id: uuidv4(), name: "Netflix", keyword_id: demoKeywords[2].id, icon: "fas fa-tv", image_url: "" },
+      { id: uuidv4(), name: "Roblox", keyword_id: "", icon: "fab fa-fort-awesome", image_url: "" },
+      { id: uuidv4(), name: "Minecraft", keyword_id: "", icon: "fas fa-cube", image_url: "" },
+      { id: uuidv4(), name: "Valorant", keyword_id: "", icon: "fas fa-crosshairs", image_url: "" }
+    ];
+    
+    for (const block of gameBlocks) {
+      await supabase.from('game_blocks').insert(block);
+    }
+    
+    // Добавляем блоки приложений
+    const appBlocks = [
+      { id: uuidv4(), name: "Telegram", keyword_id: "", icon: "fab fa-telegram", image_url: "" },
+      { id: uuidv4(), name: "WhatsApp", keyword_id: "", icon: "fab fa-whatsapp", image_url: "" },
+      { id: uuidv4(), name: "Instagram", keyword_id: "", icon: "fab fa-instagram", image_url: "" },
+      { id: uuidv4(), name: "TikTok", keyword_id: "", icon: "fab fa-tiktok", image_url: "" },
+      { id: uuidv4(), name: "YouTube", keyword_id: "", icon: "fab fa-youtube", image_url: "" }
+    ];
+    
+    for (const block of appBlocks) {
+      await supabase.from('app_blocks').insert(block);
+    }
+    
+    // Добавляем товары
+    const products = [
+      { 
+        id: uuidv4(), 
+        title: "Steam Gift Card 1000₽", 
+        price: "1000 ₽", 
+        seller: "Admin", 
+        seller_id: "admin",
+        keyword_id: demoKeywords[0].id,
+        keyword: "Steam",
+        image_url: "https://picsum.photos/id/104/400/200",
+        full_desc: "Моментальная выдача. Гарантия качества.",
+        sales: 1250,
+        rating: 5.0,
+        created_at: new Date().toISOString()
+      },
+      { 
+        id: uuidv4(), 
+        title: "Discord Nitro 1 месяц", 
+        price: "450 ₽", 
+        seller: "Admin", 
+        seller_id: "admin",
+        keyword_id: demoKeywords[1].id,
+        keyword: "Discord",
+        image_url: "https://picsum.photos/id/106/400/200",
+        full_desc: "Подписка на месяц. Моментальная выдача.",
+        sales: 3420,
+        rating: 4.9,
+        created_at: new Date().toISOString()
+      }
+    ];
+    
+    for (const product of products) {
+      await supabase.from('products').insert(product);
+    }
+    
+    console.log('✅ Демо-данные загружены в Supabase');
+  }
+}
+
+// Запускаем инициализацию
+initSupabaseTables().catch(console.error);
+
+// ========== API КЛЮЧЕВЫЕ СЛОВА ==========
+app.get('/api/keywords', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('keywords').select('*').order('name');
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/keywords', async (req, res) => {
+  try {
+    const newKeyword = {
+      id: uuidv4(),
+      name: req.body.name,
+      type: req.body.type || 'Стандарт'
+    };
+    const { data, error } = await supabase.from('keywords').insert(newKeyword).select();
+    if (error) throw error;
+    res.json(data[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/keywords/:id', async (req, res) => {
+  try {
+    const { error } = await supabase.from('keywords').delete().eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ========== API БЛОКИ ИГР ==========
+app.get('/api/game-blocks', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('game_blocks').select('*').order('name');
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/game-blocks', async (req, res) => {
+  try {
+    const newBlock = {
+      id: uuidv4(),
+      name: req.body.name,
+      keyword_id: req.body.keywordId || '',
+      icon: req.body.icon || 'fas fa-gamepad',
+      image_url: req.body.imageUrl || ''
+    };
+    const { data, error } = await supabase.from('game_blocks').insert(newBlock).select();
+    if (error) throw error;
+    res.json(data[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/game-blocks/:id', async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('game_blocks')
+      .update({
+        name: req.body.name,
+        keyword_id: req.body.keywordId,
+        icon: req.body.icon,
+        image_url: req.body.imageUrl
+      })
+      .eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/game-blocks/:id', async (req, res) => {
+  try {
+    const { error } = await supabase.from('game_blocks').delete().eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ========== API БЛОКИ ПРИЛОЖЕНИЙ ==========
+app.get('/api/app-blocks', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('app_blocks').select('*').order('name');
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/app-blocks', async (req, res) => {
+  try {
+    const newBlock = {
+      id: uuidv4(),
+      name: req.body.name,
+      keyword_id: req.body.keywordId || '',
+      icon: req.body.icon || 'fab fa-android',
+      image_url: req.body.imageUrl || ''
+    };
+    const { data, error } = await supabase.from('app_blocks').insert(newBlock).select();
+    if (error) throw error;
+    res.json(data[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/app-blocks/:id', async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('app_blocks')
+      .update({
+        name: req.body.name,
+        keyword_id: req.body.keywordId,
+        icon: req.body.icon,
+        image_url: req.body.imageUrl
+      })
+      .eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/app-blocks/:id', async (req, res) => {
+  try {
+    const { error } = await supabase.from('app_blocks').delete().eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ========== API ТОВАРЫ ==========
+app.get('/api/products', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/products', async (req, res) => {
+  try {
+    const newProduct = {
+      id: uuidv4(),
+      title: req.body.title,
+      price: req.body.price,
+      original_price: req.body.originalPrice || null,
+      discount: req.body.discount || null,
+      seller: req.body.seller,
+      seller_id: req.body.sellerId,
+      keyword_id: req.body.keywordId,
+      keyword: req.body.keyword,
+      type: req.body.type || 'Стандарт',
+      image_url: req.body.imageUrl || 'https://picsum.photos/id/42/400/200',
+      full_desc: req.body.fullDesc,
+      sales: 0,
+      rating: 5.0,
+      created_at: new Date().toISOString(),
+      status: 'active'
+    };
+    
+    const { data, error } = await supabase.from('products').insert(newProduct).select();
+    if (error) throw error;
+    res.json(data[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/products/:id', async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('products')
+      .update({
+        title: req.body.title,
+        price: req.body.price,
+        original_price: req.body.originalPrice,
+        discount: req.body.discount,
+        full_desc: req.body.fullDesc,
+        image_url: req.body.imageUrl,
+        keyword_id: req.body.keywordId,
+        keyword: req.body.keyword
+      })
+      .eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/products/:id', async (req, res) => {
+  try {
+    const { error } = await supabase.from('products').delete().eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ========== API ПОЛЬЗОВАТЕЛИ ==========
+app.post('/api/users/login', async (req, res) => {
+  try {
+    const { username } = req.body;
+    
+    // Ищем пользователя
+    let { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('username', username)
+      .single();
+    
+    if (!user) {
+      // Создаем нового пользователя
+      const newUser = {
+        id: uuidv4(),
+        username: username,
+        balance: 0,
+        joined_date: new Date().toISOString(),
+        rating: 5.0,
+        reviews_count: 0,
+        products_count: 0,
+        purchases_count: 0,
+        sales_count: 0
+      };
+      
+      const { data, error: insertError } = await supabase
+        .from('users')
+        .insert(newUser)
+        .select()
+        .single();
+      
+      if (insertError) throw insertError;
+      user = data;
+    }
+    
+    // Получаем количество товаров пользователя
+    const { count: productsCount } = await supabase
+      .from('products')
+      .select('*', { count: 'exact', head: true })
+      .eq('seller_id', user.id);
+    
+    user.products_count = productsCount;
+    
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/users/:username', async (req, res) => {
+  try {
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('username', req.params.username)
+      .single();
+    
+    if (error) throw error;
+    
+    // Получаем товары пользователя
+    const { data: products } = await supabase
+      .from('products')
+      .select('*')
+      .eq('seller_id', user.id);
+    
+    res.json({
+      ...user,
+      products_count: products?.length || 0
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-// Ключевые слова
-app.get('/api/keywords', (req, res) => {
-  const db = loadDB();
-  res.json(db.keywords);
-});
 
-app.post('/api/keywords', (req, res) => {
-  const db = loadDB();
-  const newKeyword = { id: uuidv4(), name: req.body.name, type: req.body.type || 'Стандарт' };
-  db.keywords.push(newKeyword);
-  saveDB(db);
-  res.json(newKeyword);
-});
-
-app.delete('/api/keywords/:id', (req, res) => {
-  const db = loadDB();
-  db.keywords = db.keywords.filter(k => k.id !== req.params.id);
-  saveDB(db);
-  res.json({ success: true });
-});
-
-// Блоки игр
-app.get('/api/game-blocks', (req, res) => {
-  const db = loadDB();
-  res.json(db.gameBlocks);
-});
-
-app.post('/api/game-blocks', (req, res) => {
-  const db = loadDB();
-  const newBlock = {
-    id: uuidv4(),
-    name: req.body.name,
-    keywordId: req.body.keywordId || '',
-    icon: req.body.icon || 'fas fa-gamepad',
-    imageUrl: req.body.imageUrl || ''
-  };
-  db.gameBlocks.push(newBlock);
-  saveDB(db);
-  res.json(newBlock);
-});
-
-app.delete('/api/game-blocks/:id', (req, res) => {
-  const db = loadDB();
-  db.gameBlocks = db.gameBlocks.filter(b => b.id !== req.params.id);
-  saveDB(db);
-  res.json({ success: true });
-});
-
-app.put('/api/game-blocks/:id', (req, res) => {
-  const db = loadDB();
-  const index = db.gameBlocks.findIndex(b => b.id === req.params.id);
-  if (index !== -1) {
-    db.gameBlocks[index] = { ...db.gameBlocks[index], ...req.body };
-    saveDB(db);
-    res.json(db.gameBlocks[index]);
-  } else {
-    res.status(404).json({ error: 'Not found' });
+app.put('/api/users/balance', async (req, res) => {
+  try {
+    const { username, balance } = req.body;
+    const { error } = await supabase
+      .from('users')
+      .update({ balance })
+      .eq('username', username);
+    
+    if (error) throw error;
+    res.json({ success: true, balance });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Блоки приложений
-app.get('/api/app-blocks', (req, res) => {
-  const db = loadDB();
-  res.json(db.appBlocks);
-});
-
-app.post('/api/app-blocks', (req, res) => {
-  const db = loadDB();
-  const newBlock = {
-    id: uuidv4(),
-    name: req.body.name,
-    keywordId: req.body.keywordId || '',
-    icon: req.body.icon || 'fab fa-android',
-    imageUrl: req.body.imageUrl || ''
-  };
-  db.appBlocks.push(newBlock);
-  saveDB(db);
-  res.json(newBlock);
-});
-
-app.delete('/api/app-blocks/:id', (req, res) => {
-  const db = loadDB();
-  db.appBlocks = db.appBlocks.filter(b => b.id !== req.params.id);
-  saveDB(db);
-  res.json({ success: true });
-});
-
-app.put('/api/app-blocks/:id', (req, res) => {
-  const db = loadDB();
-  const index = db.appBlocks.findIndex(b => b.id === req.params.id);
-  if (index !== -1) {
-    db.appBlocks[index] = { ...db.appBlocks[index], ...req.body };
-    saveDB(db);
-    res.json(db.appBlocks[index]);
-  } else {
-    res.status(404).json({ error: 'Not found' });
+// Google Auth
+app.post('/api/users/google-auth', async (req, res) => {
+  try {
+    const { id, email, username, picture } = req.body;
+    
+    let { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .single();
+    
+    if (!user) {
+      const newUser = {
+        id: uuidv4(),
+        username: username,
+        email: email,
+        google_id: id,
+        picture: picture,
+        balance: 0,
+        joined_date: new Date().toISOString(),
+        rating: 5.0,
+        reviews_count: 0,
+        products_count: 0
+      };
+      
+      const { data, error: insertError } = await supabase
+        .from('users')
+        .insert(newUser)
+        .select()
+        .single();
+      
+      if (insertError) throw insertError;
+      user = data;
+    }
+    
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Товары
-app.get('/api/products', (req, res) => {
-  const db = loadDB();
-  res.json(db.products);
-});
-
-app.post('/api/products', (req, res) => {
-  const db = loadDB();
-  const newProduct = {
-    id: uuidv4(),
-    ...req.body,
-    createdAt: new Date().toISOString(),
-    sales: 0,
-    rating: 5.0
-  };
-  db.products.unshift(newProduct);
-  saveDB(db);
-  res.json(newProduct);
-});
-
-app.put('/api/products/:id', (req, res) => {
-  const db = loadDB();
-  const index = db.products.findIndex(p => p.id === req.params.id);
-  if (index !== -1) {
-    db.products[index] = { ...db.products[index], ...req.body };
-    saveDB(db);
-    res.json(db.products[index]);
-  } else {
-    res.status(404).json({ error: 'Not found' });
+// ========== ТЕСТОВЫЙ МАРШРУТ ==========
+app.get('/api/test-db', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('keywords').select('*');
+    if (error) throw error;
+    res.json({
+      success: true,
+      message: 'База данных работает!',
+      count: data.length,
+      keywords: data
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-app.delete('/api/products/:id', (req, res) => {
-  const db = loadDB();
-  db.products = db.products.filter(p => p.id !== req.params.id);
-  saveDB(db);
-  res.json({ success: true });
-});
-
-// Пользователи
-app.post('/api/users/login', (req, res) => {
-  const db = loadDB();
-  const { username } = req.body;
-  let user = db.users.find(u => u.username === username);
-  
-  if (!user) {
-    user = {
-      id: uuidv4(),
-      username,
-      balance: 0,
-      joinedDate: new Date().toISOString(),
-      rating: 5.0,
-      reviewsCount: 0,
-      productsCount: 0
-    };
-    db.users.push(user);
-    saveDB(db);
-  }
-  
-  res.json(user);
-});
-
-// WebSocket чат
+// ========== WEBSOCKET ДЛЯ ЧАТА ==========
 const connectedUsers = new Map();
 
 io.on('connection', (socket) => {
@@ -304,22 +527,20 @@ io.on('connection', (socket) => {
     io.emit('users-online', Array.from(connectedUsers.values()));
   });
   
-  socket.on('send-message', (data) => {
+  socket.on('send-message', async (data) => {
     const { to, message, from, fromName } = data;
     const messageData = {
       id: uuidv4(),
-      from,
-      fromName,
-      to,
+      from_user_id: from,
+      from_name: fromName,
+      to_user_id: to,
       text: message,
       timestamp: new Date().toISOString(),
       read: false
     };
     
-    const db = loadDB();
-    if (!db.messages) db.messages = [];
-    db.messages.push(messageData);
-    saveDB(db);
+    // Сохраняем в Supabase
+    await supabase.from('messages').insert(messageData);
     
     io.emit('new-message', messageData);
   });
@@ -329,76 +550,10 @@ io.on('connection', (socket) => {
     io.emit('users-online', Array.from(connectedUsers.values()));
   });
 });
-// Google Auth - регистрация/вход через Google
-app.post('/api/users/google-auth', (req, res) => {
-  const db = loadDB();
-  const { id, email, username, picture } = req.body;
-  
-  let user = db.users.find(u => u.email === email || u.googleId === id);
-  
-  if (!user) {
-    user = {
-      id: uuidv4(),
-      username: username,
-      email: email,
-      googleId: id,
-      picture: picture,
-      balance: 0,
-      joinedDate: new Date().toISOString(),
-      rating: 5.0,
-      reviewsCount: 0,
-      productsCount: 0
-    };
-    db.users.push(user);
-    saveDB(db);
-  } else {
-    // Обновляем данные пользователя если нужно
-    user.username = username;
-    user.picture = picture;
-    saveDB(db);
-  }
-  
-  res.json({
-    id: user.id,
-    username: user.username,
-    email: user.email,
-    balance: user.balance,
-    joinedDate: user.joinedDate
-  });
-});
-app.get('/api/messages/:userId/:partnerId', (req, res) => {
-  const db = loadDB();
-  const messages = (db.messages || []).filter(m => 
-    (m.from === req.params.userId && m.to === req.params.partnerId) ||
-    (m.from === req.params.partnerId && m.to === req.params.userId)
-  );
-  res.json(messages);
-});
 
-app.get('/api/users', (req, res) => {
-  const db = loadDB();
-  res.json(db.users.map(u => ({ id: u.id, username: u.username })));
-});
-
-// Статистика пользователя
-app.get('/api/users/:id/stats', (req, res) => {
-  const db = loadDB();
-  const user = db.users.find(u => u.id === req.params.id);
-  const userProducts = db.products.filter(p => p.sellerId === req.params.id);
-  
-  res.json({
-    balance: user?.balance || 0,
-    productsCount: userProducts.length,
-    purchasesCount: user?.purchasesCount || 0,
-    salesCount: user?.salesCount || 0,
-    rating: user?.rating || 5.0,
-    reviewsCount: user?.reviewsCount || 0
-  });
-});
-
-// Запуск сервера
+// ========== ЗАПУСК СЕРВЕРА ==========
 server.listen(PORT, () => {
   console.log(`✅ Сервер запущен на http://0.0.0.0:${PORT}`);
   console.log(`📁 uploads: ./uploads`);
-  console.log(`💾 database: ./database.json`);
+  console.log(`🗄️ Supabase подключен`);
 });

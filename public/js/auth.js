@@ -1,106 +1,62 @@
-// Аутентификация и работа с пользователем
+// auth.js - обновленная версия
 window.currentUser = null;
 
-// Данные пользователя по умолчанию
-let userProfile = {
-  balance: 0.10,
-  joinedDate: "января 2026",
-  productsCount: 0,
-  purchasesCount: 0,
-  salesCount: 0,
-  activeOrders: 0,
-  completedOrders: 0,
-  rating: 5.0,
-  reviewsCount: 3
-};
-
-function initAuth() {
-  let user = localStorage.getItem("apex_user");
-  let profile = localStorage.getItem("apex_profile");
+async function initAuth() {
+  let username = localStorage.getItem("apex_user");
   
-  if (!user) {
-    user = prompt("Добро пожаловать! Введите ваш никнейм:") || "Гость";
-    localStorage.setItem("apex_user", user);
+  if (!username) {
+    username = prompt("Добро пожаловать! Введите ваш никнейм:") || "Гость";
   }
   
-  if (profile) {
-    userProfile = JSON.parse(profile);
-  } else {
-    // Сохраняем профиль по умолчанию
-    localStorage.setItem("apex_profile", JSON.stringify(userProfile));
+  try {
+    // Авторизация через API
+    const user = await window.api.login(username);
+    window.currentUser = user.username;
+    localStorage.setItem("apex_user", user.username);
+    localStorage.setItem("apex_user_id", user.id);
+    
+    // Обновляем профиль
+    updateProfileUI(user);
+    
+    // Загружаем товары пользователя
+    await loadUserProducts();
+    
+  } catch (error) {
+    console.error('Auth error:', error);
+    window.currentUser = username;
   }
-  
-  window.currentUser = user;
-  
-  // Обновляем профиль на странице
-  updateProfileUI();
-  
-  // Обновляем количество товаров пользователя
-  updateUserProductsCountFromStorage();
 }
 
-function updateUserProductsCountFromStorage() {
-  const products = JSON.parse(localStorage.getItem('apex_products') || '[]');
-  const userProductsCount = products.filter(p => p.seller === window.currentUser).length;
-  userProfile.productsCount = userProductsCount;
-  localStorage.setItem("apex_profile", JSON.stringify(userProfile));
-  
-  const productsCountEl = document.getElementById("profileProductsCount");
-  if (productsCountEl) productsCountEl.innerText = userProductsCount;
-}
-
-function updateProfileUI() {
-  // Обновляем баланс
+function updateProfileUI(user) {
   const balanceEl = document.getElementById("profileBalance");
-  if (balanceEl) balanceEl.innerText = userProfile.balance.toFixed(2) + " ₽";
+  if (balanceEl) balanceEl.innerText = (user.balance || 0).toFixed(2) + " ₽";
   
-  // Обновляем имя пользователя
   const usernameEl = document.getElementById("profileUsername");
-  if (usernameEl) usernameEl.innerText = window.currentUser;
+  if (usernameEl) usernameEl.innerText = user.username;
   
-  // Обновляем статистику
   const productsCountEl = document.getElementById("profileProductsCount");
-  if (productsCountEl) productsCountEl.innerText = userProfile.productsCount;
-  
-  const purchasesCountEl = document.getElementById("profilePurchasesCount");
-  if (purchasesCountEl) purchasesCountEl.innerText = userProfile.purchasesCount;
-  
-  const salesCountEl = document.getElementById("profileSalesCount");
-  if (salesCountEl) salesCountEl.innerText = userProfile.salesCount;
-  
-  const reviewsCountEl = document.getElementById("profileReviewsCount");
-  if (reviewsCountEl) reviewsCountEl.innerText = userProfile.reviewsCount + " отзыва";
-  
-  const activeCountEl = document.getElementById("activeCount");
-  if (activeCountEl) activeCountEl.innerText = userProfile.activeOrders;
-  
-  const completedCountEl = document.getElementById("completedCount");
-  if (completedCountEl) completedCountEl.innerText = userProfile.completedOrders;
-  
-  // Обновляем дату регистрации
-  const joinedEl = document.getElementById("profileJoined");
-  if (joinedEl) joinedEl.innerText = `на Плейнексис с ${userProfile.joinedDate}`;
-
-  if (typeof updateNewProfileStats === 'function') {
-  updateNewProfileStats(userProfile);
-}
+  if (productsCountEl) productsCountEl.innerText = user.products_count || 0;
 }
 
-function updateProfileStats(products, purchases, sales) {
-  if (products !== undefined) userProfile.productsCount = products;
-  if (purchases !== undefined) userProfile.purchasesCount = purchases;
-  if (sales !== undefined) userProfile.salesCount = sales;
+async function loadUserProducts() {
+  const products = await window.api.getProducts();
+  const userProducts = products.filter(p => p.seller === window.currentUser);
   
-  localStorage.setItem("apex_profile", JSON.stringify(userProfile));
-  updateProfileUI();
+  const container = document.getElementById("profileProductsList");
+  if (container && userProducts.length > 0) {
+    container.innerHTML = userProducts.map(p => `
+      <div class="profile-product-item" onclick="window.openProductDetailById('${p.id}')">
+        <img src="${p.image_url}" alt="${p.title}">
+        <div>${p.title}</div>
+        <div>${p.price}</div>
+      </div>
+    `).join('');
+  }
 }
 
-function logout() {
+// Экспорт
+window.initAuth = initAuth;
+window.logout = () => {
   localStorage.clear();
   location.reload();
-}
-
-// Экспортируем в глобальный объект
-window.logout = logout;
-window.updateProfileStats = updateProfileStats;
-window.updateProfileUI = updateProfileUI;
+};
