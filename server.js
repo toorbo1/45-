@@ -19,7 +19,13 @@ const io = socketIo(server, {
 });
 
 const PORT = process.env.PORT || 3000;
+// ПОДАЧА СТАТИЧЕСКИХ ФАЙЛОВ (HTML, CSS, JS)
+app.use(express.static('public'));
 
+// ОБРАБОТКА ГЛАВНОЙ СТРАНИЦЫ
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/public/index.html');
+});
 // Middleware
 app.use(cors());
 app.use(express.json());
