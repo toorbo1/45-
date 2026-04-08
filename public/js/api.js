@@ -1,83 +1,59 @@
-// API клиент для работы с сервером
+// api.js
+const API_BASE = ''; // Оставляем пустым, чтобы работало на том же домене
+
 const API = {
-    // Товары
+    // ----- ТОВАРЫ -----
     async getProducts() {
-        const res = await fetch('/api/products');
+        const res = await fetch(`${API_BASE}/api/products`);
+        if (!res.ok) throw new Error('Ошибка загрузки товаров');
         return res.json();
     },
-    
-    async createProduct(product) {
-        const res = await fetch('/api/products', {
+
+    async createProduct(productData) {
+        const res = await fetch(`${API_BASE}/api/products`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(product)
+            body: JSON.stringify(productData)
         });
+        if (!res.ok) throw new Error('Ошибка создания товара');
         return res.json();
     },
-    
-    async deleteProduct(id) {
-        const res = await fetch(`/api/products/${id}`, {
+
+    async deleteProduct(productId) {
+        const res = await fetch(`${API_BASE}/api/products/${productId}`, {
             method: 'DELETE'
         });
+        if (!res.ok) throw new Error('Ошибка удаления товара');
         return res.json();
     },
-    
-    // Ключевые слова
+
+    // ----- КЛЮЧЕВЫЕ СЛОВА -----
     async getKeywords() {
-        const res = await fetch('/api/keywords');
+        const res = await fetch(`${API_BASE}/api/keywords`);
+        if (!res.ok) throw new Error('Ошибка загрузки ключевых слов');
         return res.json();
     },
-    
-    async createKeyword(keyword) {
-        const res = await fetch('/api/keywords', {
+
+    async createKeyword(keywordData) {
+        const res = await fetch(`${API_BASE}/api/keywords`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(keyword)
+            body: JSON.stringify(keywordData)
         });
         return res.json();
     },
     
-    // Блоки игр
+    // ----- БЛОКИ ИГР И ПРИЛОЖЕНИЙ -----
     async getGameBlocks() {
-        const res = await fetch('/api/game-blocks');
+        const res = await fetch(`${API_BASE}/api/game-blocks`);
         return res.json();
     },
-    
-    async createGameBlock(block) {
-        const res = await fetch('/api/game-blocks', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(block)
-        });
-        return res.json();
-    },
-    
-    async deleteGameBlock(id) {
-        const res = await fetch(`/api/game-blocks/${id}`, {
-            method: 'DELETE'
-        });
-        return res.json();
-    },
-    
-    // Блоки приложений
+
     async getAppBlocks() {
-        const res = await fetch('/api/app-blocks');
-        return res.json();
-    },
-    
-    async createAppBlock(block) {
-        const res = await fetch('/api/app-blocks', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(block)
-        });
-        return res.json();
-    },
-    
-    async deleteAppBlock(id) {
-        const res = await fetch(`/api/app-blocks/${id}`, {
-            method: 'DELETE'
-        });
+        const res = await fetch(`${API_BASE}/api/app-blocks`);
         return res.json();
     }
 };
+
+// Делаем API доступным везде
+window.API = API;

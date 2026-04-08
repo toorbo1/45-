@@ -1278,22 +1278,19 @@ async function createAdminProduct() {
     };
     
     try {
-        // ⭐ ОТПРАВЛЯЕМ НА СЕРВЕР
-        const saved = await API.createProduct(newProduct);
-        console.log('✅ Товар сохранён в Supabase:', saved);
+        // ⭐ ВОТ ЭТА СТРОКА КРИТИЧЕСКИ ВАЖНА ⭐
+        // Отправляем данные НА СЕРВЕР, а не в localStorage
+        const savedProduct = await window.API.createProduct(newProduct);
         
-        // Очищаем форму
-        document.getElementById("postTitle").value = "";
-        document.getElementById("postPrice").value = "";
-        document.getElementById("postDescription").value = "";
-        document.getElementById("postImageUrl").value = "";
+        console.log('Товар сохранен на сервере:', savedProduct);
+        showToast('✅ Товар добавлен и виден всем!', 'success');
         
-        // Перезагружаем список товаров
-        loadAdminProducts();
-        showToast("✅ Товар добавлен и виден всем пользователям!", "success");
+        // Очищаем форму и обновляем список
+        clearProductForm();
+        await loadAdminProducts(); // перезагружаем список товаров в админке
     } catch (error) {
         console.error('Ошибка:', error);
-        showToast("❌ Ошибка при сохранении товара", "error");
+        showToast('❌ Ошибка при сохранении', 'error');
     }
 }
 
