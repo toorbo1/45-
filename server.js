@@ -18,7 +18,7 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());  
 app.use(express.json());
-app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static('uploads'));
 
 // Создаём папки
@@ -370,7 +370,7 @@ app.get('/api/users/:id/stats', (req, res) => {
 });
 
 // Запуск сервера
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, () => {
   console.log(`✅ Сервер запущен на http://0.0.0.0:${PORT}`);
   console.log(`📁 uploads: ./uploads`);
   console.log(`💾 database: ./database.json`);
