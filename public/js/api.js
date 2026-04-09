@@ -1,4 +1,4 @@
-// ========== API КЛИЕНТ ==========
+// ========== API КЛИЕНТ (с модерацией) ==========
 
 const API = {
     async request(url, options = {}) {
@@ -28,6 +28,7 @@ const API = {
         }
     },
     
+    // ========== ТОВАРЫ (только одобренные) ==========
     async getProducts() {
         try {
             const products = await this.request('/api/products');
@@ -38,14 +39,53 @@ const API = {
         }
     },
     
-    async createProduct(product) {
-        const result = await this.request('/api/products', {
+    // ========== ТОВАРЫ НА МОДЕРАЦИИ ==========
+    async getPendingProducts() {
+        try {
+            const products = await this.request('/api/pending-products');
+            return Array.isArray(products) ? products : [];
+        } catch (error) {
+            console.error('Error fetching pending products:', error);
+            return [];
+        }
+    },
+    
+    // ========== СОЗДАНИЕ ТОВАРА (уходит на модерацию) ==========
+    async createProduct(product, isAdmin = false) {
+        // Если админ - публикуем сразу
+        if (isAdmin) {
+            const result = await this.request('/api/products', {
+                method: 'POST',
+                body: JSON.stringify(product)
+            });
+            return result;
+        }
+        
+        // Если обычный пользователь - отправляем на модерацию
+        const result = await this.request('/api/pending-products', {
             method: 'POST',
             body: JSON.stringify(product)
         });
         return result;
     },
     
+    // ========== ОДОБРЕНИЕ ТОВАРА (только для админов) ==========
+    async approveProduct(productId) {
+        const result = await this.request(`/api/approve-product/${productId}`, {
+            method: 'POST'
+        });
+        return result;
+    },
+    
+    // ========== ОТКЛОНЕНИЕ ТОВАРА ==========
+    async rejectProduct(productId) {
+        const result = await this.request(`/api/pending-products/${productId}`, {
+            method: 'DELETE'
+        });
+        return result;
+    },
+    
+    // ========== УДАЛЕНИЕ ТОВАРА (только для админов или владельца) ==========
     async deleteProduct(id) {
         const result = await this.request(`/api/products/${id}`, {
             method: 'DELETE'
@@ -53,6 +93,7 @@ const API = {
         return result;
     },
     
+    // ========== КЛЮЧЕВЫЕ СЛОВА ==========
     async getKeywords() {
         try {
             const keywords = await this.request('/api/keywords');
@@ -76,6 +117,18 @@ const API = {
             method: 'DELETE'
         });
         return result;
+    },
+    
+    // ========== ПРОВЕРКА, ЯВЛЯЕТСЯ ЛИ ПОЛЬЗОВАТЕЛЬ АДМИНОМ ==========
+    async isAdmin(username) {
+        try {
+            // Можно добавить эндпоинт для проверки админов
+            // Пока используем localStorage
+            const admins = JSON.parse(localStorage.getItem('apex_admins') || '[]');
+            return admins.some(a => a.username === username);
+        } catch (error) {
+            return false;
+        }
     },
     
     async testConnection() {

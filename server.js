@@ -17,33 +17,19 @@ app.use(cors({
     credentials: true
 }));
 
-// Trust proxy - важно для Cloudflare
 app.set('trust proxy', true);
-
-// Парсинг JSON и URL-encoded
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// ============ Логирование ВСЕХ запросов ============
+// ============ Логирование ============
 app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
-    console.log(`  Headers:`, {
-        'user-agent': req.headers['user-agent']?.substring(0, 50),
-        'cf-ray': req.headers['cf-ray'],
-        'x-forwarded-for': req.headers['x-forwarded-for']
-    });
     next();
 });
 
 // ============ Статические файлы ============
 app.use(express.static(path.join(__dirname, 'public'), {
-    maxAge: '1d',
-    setHeaders: (res, filePath) => {
-        // Кэширование для статики
-        if (filePath.endsWith('.css') || filePath.endsWith('.js')) {
-            res.setHeader('Cache-Control', 'public, max-age=86400');
-        }
-    }
+    maxAge: '1d'
 }));
 
 // ============ Supabase ============
@@ -58,38 +44,27 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 console.log('✅ Supabase подключен');
 
-// ============ HEALTH CHECK (важно для Cloudflare) ============
+// ============ HEALTH CHECK ============
 app.get('/health', (req, res) => {
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.status(200).json({ 
-        status: 'ok', 
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        memory: process.memoryUsage()
-    });
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// ============ ROOT - проверка работы ============
+// ============ ROOT ============
 app.get('/', (req, res) => {
-    console.log('🏠 Serving index.html');
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ============ API МАРШРУТЫ ============
-
-// ТОВАРЫ - GET
+// ============ API ТОВАРЫ (только одобренные) ============
 app.get('/api/products', async (req, res) => {
     console.log('📦 GET /api/products');
     try {
         const { data, error } = await supabase
             .from('products')
             .select('*')
+            .eq('status', 'active')
             .order('created_at', { ascending: false });
         
         if (error) throw error;
-        
-        res.setHeader('Content-Type', 'application/json');
         res.json(data || []);
     } catch (err) {
         console.error('❌ GET products error:', err);
@@ -97,7 +72,24 @@ app.get('/api/products', async (req, res) => {
     }
 });
 
-// ТОВАРЫ - POST
+// ============ API ТОВАРЫ НА МОДЕРАЦИИ ============
+app.get('/api/pending-products', async (req, res) => {
+    console.log('📦 GET /api/pending-products');
+    try {
+        const { data, error } = await supabase
+            .from('pending_products')
+            .select('*')
+            .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        res.json(data || []);
+    } catch (err) {
+        console.error('❌ GET pending products error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ============ СОЗДАНИЕ ТОВАРА (на модерацию) ============
 app.post('/api/products', async (req, res) => {
     console.log('📦 POST /api/products');
     try {
@@ -105,13 +97,14 @@ app.post('/api/products', async (req, res) => {
             id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
             title: req.body.title,
             price: req.body.price,
-            seller: req.body.seller || 'Admin',
+            seller: req.body.seller || 'User',
             keyword: req.body.keyword || 'Без категории',
             image_url: req.body.image_url || 'https://picsum.photos/id/42/400/200',
             description: req.body.description || '',
             discount: req.body.discount || null,
             original_price: req.body.originalPrice || null,
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            status: 'active'
         };
         
         const { data, error } = await supabase
@@ -120,7 +113,6 @@ app.post('/api/products', async (req, res) => {
             .select();
         
         if (error) throw error;
-        
         res.status(201).json(data[0]);
     } catch (err) {
         console.error('❌ POST product error:', err);
@@ -128,9 +120,109 @@ app.post('/api/products', async (req, res) => {
     }
 });
 
-// ТОВАРЫ - DELETE
+// ============ ДОБАВЛЕНИЕ ТОВАРА НА МОДЕРАЦИЮ ============
+app.post('/api/pending-products', async (req, res) => {
+    console.log('📦 POST /api/pending-products');
+    try {
+        const pendingProduct = {
+            id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+            title: req.body.title,
+            price: req.body.price,
+            seller: req.body.seller || 'User',
+            keyword: req.body.keyword || 'Без категории',
+            image_url: req.body.image_url || 'https://picsum.photos/id/42/400/200',
+            description: req.body.description || '',
+            discount: req.body.discount || null,
+            original_price: req.body.originalPrice || null,
+            created_at: new Date().toISOString(),
+            status: 'pending'
+        };
+        
+        const { data, error } = await supabase
+            .from('pending_products')
+            .insert(pendingProduct)
+            .select();
+        
+        if (error) throw error;
+        res.status(201).json(data[0]);
+    } catch (err) {
+        console.error('❌ POST pending product error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ============ ОДОБРЕНИЕ ТОВАРА ============
+app.post('/api/approve-product/:id', async (req, res) => {
+    console.log('✅ POST /api/approve-product/' + req.params.id);
+    try {
+        // 1. Получаем товар из pending_products
+        const { data: pendingProduct, error: getError } = await supabase
+            .from('pending_products')
+            .select('*')
+            .eq('id', req.params.id)
+            .single();
+        
+        if (getError) throw getError;
+        if (!pendingProduct) {
+            return res.status(404).json({ error: 'Product not found in pending' });
+        }
+        
+        // 2. Создаём товар в products
+        const newProduct = {
+            id: pendingProduct.id,
+            title: pendingProduct.title,
+            price: pendingProduct.price,
+            seller: pendingProduct.seller,
+            keyword: pendingProduct.keyword,
+            image_url: pendingProduct.image_url,
+            description: pendingProduct.description,
+            discount: pendingProduct.discount,
+            original_price: pendingProduct.original_price,
+            created_at: pendingProduct.created_at,
+            status: 'active'
+        };
+        
+        const { error: insertError } = await supabase
+            .from('products')
+            .insert(newProduct);
+        
+        if (insertError) throw insertError;
+        
+        // 3. Удаляем из pending_products
+        const { error: deleteError } = await supabase
+            .from('pending_products')
+            .delete()
+            .eq('id', req.params.id);
+        
+        if (deleteError) throw deleteError;
+        
+        res.json({ success: true, product: newProduct });
+    } catch (err) {
+        console.error('❌ Approve product error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ============ ОТКЛОНЕНИЕ ТОВАРА ============
+app.delete('/api/pending-products/:id', async (req, res) => {
+    console.log('❌ DELETE /api/pending-products/' + req.params.id);
+    try {
+        const { error } = await supabase
+            .from('pending_products')
+            .delete()
+            .eq('id', req.params.id);
+        
+        if (error) throw error;
+        res.json({ success: true });
+    } catch (err) {
+        console.error('❌ Delete pending product error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ============ УДАЛЕНИЕ ТОВАРА ИЗ PRODUCTS ============
 app.delete('/api/products/:id', async (req, res) => {
-    console.log('📦 DELETE /api/products/' + req.params.id);
+    console.log('🗑️ DELETE /api/products/' + req.params.id);
     try {
         const { error } = await supabase
             .from('products')
@@ -138,7 +230,6 @@ app.delete('/api/products/:id', async (req, res) => {
             .eq('id', req.params.id);
         
         if (error) throw error;
-        
         res.json({ success: true });
     } catch (err) {
         console.error('❌ DELETE product error:', err);
@@ -146,7 +237,7 @@ app.delete('/api/products/:id', async (req, res) => {
     }
 });
 
-// КЛЮЧЕВЫЕ СЛОВА - GET
+// ============ КЛЮЧЕВЫЕ СЛОВА - GET ============
 app.get('/api/keywords', async (req, res) => {
     console.log('🏷️ GET /api/keywords');
     try {
@@ -156,7 +247,6 @@ app.get('/api/keywords', async (req, res) => {
             .order('name');
         
         if (error) throw error;
-        
         res.json(data || []);
     } catch (err) {
         console.error('❌ GET keywords error:', err);
@@ -164,7 +254,7 @@ app.get('/api/keywords', async (req, res) => {
     }
 });
 
-// КЛЮЧЕВЫЕ СЛОВА - POST
+// ============ КЛЮЧЕВЫЕ СЛОВА - POST ============
 app.post('/api/keywords', async (req, res) => {
     console.log('🏷️ POST /api/keywords');
     try {
@@ -181,7 +271,6 @@ app.post('/api/keywords', async (req, res) => {
             .select();
         
         if (error) throw error;
-        
         res.status(201).json(data[0]);
     } catch (err) {
         console.error('❌ POST keyword error:', err);
@@ -189,7 +278,7 @@ app.post('/api/keywords', async (req, res) => {
     }
 });
 
-// КЛЮЧЕВЫЕ СЛОВА - DELETE
+// ============ КЛЮЧЕВЫЕ СЛОВА - DELETE ============
 app.delete('/api/keywords/:id', async (req, res) => {
     console.log('🏷️ DELETE /api/keywords/' + req.params.id);
     try {
@@ -199,7 +288,6 @@ app.delete('/api/keywords/:id', async (req, res) => {
             .eq('id', req.params.id);
         
         if (error) throw error;
-        
         res.json({ success: true });
     } catch (err) {
         console.error('❌ DELETE keyword error:', err);
@@ -207,32 +295,43 @@ app.delete('/api/keywords/:id', async (req, res) => {
     }
 });
 
-// ТЕСТ БАЗЫ ДАННЫХ
-app.get('/api/test-db', async (req, res) => {
-    console.log('🔧 GET /api/test-db');
+// ============ ИГРОВЫЕ БЛОКИ - GET ============
+app.get('/api/game-blocks', async (req, res) => {
     try {
-        const { count: productsCount, error: productsError } = await supabase
+        const { data, error } = await supabase
+            .from('game_blocks')
+            .select('*')
+            .order('created_at');
+        
+        if (error) throw error;
+        res.json(data || []);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ============ ТЕСТ БАЗЫ ============
+app.get('/api/test-db', async (req, res) => {
+    try {
+        const { count: productsCount } = await supabase
             .from('products')
             .select('*', { count: 'exact', head: true });
         
-        const { count: keywordsCount, error: keywordsError } = await supabase
-            .from('keywords')
+        const { count: pendingCount } = await supabase
+            .from('pending_products')
             .select('*', { count: 'exact', head: true });
         
         res.json({
             success: true,
             products_count: productsCount || 0,
-            keywords_count: keywordsCount || 0,
-            products_error: productsError?.message || null,
-            keywords_error: keywordsError?.message || null
+            pending_count: pendingCount || 0
         });
     } catch (err) {
-        console.error('❌ Test DB error:', err);
         res.status(500).json({ success: false, error: err.message });
     }
 });
 
-// ============ Обработка OPTIONS запросов (CORS preflight) ============
+// ============ OPTIONS ============
 app.options('*', (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, PUT, OPTIONS');
@@ -242,52 +341,17 @@ app.options('*', (req, res) => {
 
 // ============ ВСЕ ОСТАЛЬНЫЕ МАРШРУТЫ ============
 app.get('*', (req, res) => {
-    console.log('📄 Serving index.html for:', req.url);
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ============ Обработка ошибок ============
-app.use((err, req, res, next) => {
-    console.error('❌ Unhandled error:', err);
-    res.status(500).json({ error: 'Internal server error' });
-});
-
-// ============ ЗАПУСК СЕРВЕРА ============
+// ============ ЗАПУСК ============
 const server = app.listen(PORT, HOST, () => {
     console.log(`✅ Сервер запущен на http://${HOST}:${PORT}`);
-    console.log(`📋 Health check: /health`);
-    console.log(`📦 API products: /api/products`);
-    console.log(`🏷️ API keywords: /api/keywords`);
-    console.log(`🔧 Test DB: /api/test-db`);
+    console.log(`📦 GET /api/products - одобренные товары`);
+    console.log(`📦 GET /api/pending-products - товары на модерации`);
+    console.log(`✅ POST /api/approve-product/:id - одобрить товар`);
 });
 
-// Таймаут соединения - важно для Cloudflare
-server.timeout = 120000; // 2 минуты
-server.keepAliveTimeout = 65000; // 65 секунд
-server.headersTimeout = 66000; // 66 секунд
-
-// Обработка ошибок сервера
-server.on('error', (error) => {
-    console.error('❌ Server error:', error);
-    if (error.code === 'EADDRINUSE') {
-        console.error(`Port ${PORT} is already in use`);
-        process.exit(1);
-    }
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-    console.log('SIGTERM received, closing server...');
-    server.close(() => {
-        console.log('Server closed');
-        process.exit(0);
-    });
-});
-
-process.on('SIGINT', () => {
-    console.log('SIGINT received, closing server...');
-    server.close(() => {
-        console.log('Server closed');
-        process.exit(0);
-    });
-});
+server.timeout = 120000;
+server.keepAliveTimeout = 65000;
+server.headersTimeout = 66000;

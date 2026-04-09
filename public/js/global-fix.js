@@ -5,7 +5,14 @@
 (function() {
     console.log('🌍 GLOBAL FIX - загрузка...');
 
-    // ========== 1. ОСНОВНАЯ ФУНКЦИЯ ЗАГРУЗКИ ТОВАРОВ ==========
+    // Проверка, является ли пользователь админом
+    async function isCurrentUserAdmin() {
+        const currentUser = localStorage.getItem('apex_user') || 'Гость';
+        const admins = JSON.parse(localStorage.getItem('apex_admins') || '[]');
+        return admins.some(a => a.username === currentUser);
+    }
+
+    // ========== 1. ЗАГРУЗКА ТОВАРОВ (только одобренные) ==========
     window.loadProducts = async function() {
         console.log('🔄 loadProducts (GLOBAL FIX)');
         try {
@@ -40,11 +47,10 @@
                 }
             }
             
-            // Обновляем счетчик
             const countSpan = document.getElementById('productCountStat');
             if (countSpan) countSpan.innerText = products.length;
             
-            console.log(`✅ Загружено ${products.length} товаров`);
+            console.log(`✅ Загружено ${products.length} одобренных товаров`);
             return products;
         } catch(e) {
             console.error('loadProducts error:', e);
@@ -52,104 +58,99 @@
         }
     };
 
-    // ========== 2. ЗАГРУЗКА КЛЮЧЕВЫХ СЛОВ ==========
-    window.loadKeywordsGlobal = async function() {
+    // ========== 2. ЗАГРУЗКА ТОВАРОВ НА МОДЕРАЦИИ (только для админов) ==========
+    window.loadPendingProducts = async function() {
+        const isAdmin = await isCurrentUserAdmin();
+        if (!isAdmin) return [];
+        
         try {
-            const keywords = await API.getKeywords();
-            window.keywords = keywords;
+            const pending = await API.getPendingProducts();
             
-            // Обновляем все селекты
-            const selects = ['postKeyword', 'productKeywordSelect', 'newGameKeyword', 'newAppKeyword', 'editKeyword'];
-            selects.forEach(selectId => {
-                const select = document.getElementById(selectId);
-                if (select) {
-                    const currentValue = select.value;
-                    select.innerHTML = '<option value="">Выберите категорию</option>';
-                    keywords.forEach(k => {
-                        select.innerHTML += `<option value="${k.id}">${k.name} - ${k.type}</option>`;
-                    });
-                    if (currentValue && keywords.some(k => k.id === currentValue)) {
-                        select.value = currentValue;
-                    }
+            // Обновляем админский список
+            const container = document.getElementById('pendingProductsList');
+            if (container) {
+                if (pending.length === 0) {
+                    container.innerHTML = '<div class="empty-state">Нет товаров на модерации</div>';
+                } else {
+                    container.innerHTML = pending.map(p => `
+                        <div class="pending-product-item">
+                            <div class="pending-product-img">
+                                <img src="${p.image_url || 'https://picsum.photos/id/42/50/50'}" alt="">
+                            </div>
+                            <div class="pending-product-info">
+                                <div class="pending-product-title">${escapeHtml(p.title)}</div>
+                                <div class="pending-product-price">${escapeHtml(p.price)}</div>
+                                <div class="pending-product-seller">Продавец: ${escapeHtml(p.seller)}</div>
+                            </div>
+                            <div class="pending-product-actions">
+                                <button class="approve-product-btn" onclick="window.approveProduct('${p.id}')">
+                                    <i class="fas fa-check"></i> Одобрить
+                                </button>
+                                <button class="reject-product-btn" onclick="window.rejectProduct('${p.id}')">
+                                    <i class="fas fa-times"></i> Отклонить
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
                 }
-            });
-            
-            // Обновляем список в админке
-            if (typeof renderKeywords === 'function') {
-                renderKeywords();
             }
             
-            console.log(`✅ Загружено ${keywords.length} ключевых слов`);
-            return keywords;
+            return pending;
         } catch(e) {
-            console.error('loadKeywordsGlobal error:', e);
+            console.error('loadPendingProducts error:', e);
             return [];
         }
     };
 
-    // ========== 3. ОТКРЫТИЕ ТОВАРА ==========
-    window.openProductDetailById = async function(productId) {
-        console.log('🔍 openProductDetailById:', productId);
-        const products = await API.getProducts();
-        const product = products.find(p => p.id === productId);
-        
-        if (!product) {
-            alert('Товар не найден');
-            return;
-        }
-        
-        // Показываем информацию
-        alert(`📦 ${product.title}\n💰 ${product.price}\n👤 ${product.seller}\n\n📝 ${(product.description || '').substring(0, 200)}...`);
-    };
-
-    // ========== 4. ФИЛЬТРАЦИЯ ТОВАРОВ ==========
-    window.filterProducts = function() {
-        const term = document.getElementById('searchInput')?.value.toLowerCase() || '';
-        const products = window.productsArray || [];
-        const filtered = products.filter(p => 
-            p.title.toLowerCase().includes(term) || 
-            (p.keyword && p.keyword.toLowerCase().includes(term))
-        );
-        
-        const grid = document.getElementById('productsGrid');
-        if (!grid) return;
-        
-        if (filtered.length === 0) {
-            grid.innerHTML = '<div class="empty-state">Ничего не найдено</div>';
-        } else {
-            let html = '';
-            filtered.forEach(p => {
-                html += `
-                    <div class="product-card" onclick="window.openProductDetailById('${p.id}')">
-                        <div class="card-image">
-                            <img src="${p.image_url || 'https://picsum.photos/id/42/400/300'}" 
-                                 onerror="this.src='https://picsum.photos/id/42/400/300'">
-                        </div>
-                        <div class="card-body">
-                            <div class="current-price">${p.price}</div>
-                            <h3 class="product-title">${(p.title || 'Без названия').substring(0, 50)}</h3>
-                        </div>
-                    </div>
-                `;
-            });
-            grid.innerHTML = html;
+    // ========== 3. ОДОБРЕНИЕ ТОВАРА ==========
+    window.approveProduct = async function(productId) {
+        try {
+            await API.approveProduct(productId);
+            showToast('✅ Товар одобрен и виден всем пользователям!', 'success');
+            
+            // Обновляем списки
+            await window.loadPendingProducts();
+            await window.loadProducts();
+            
+            // Обновляем админ-статистику
+            if (typeof window.updateAdminStats === 'function') {
+                await window.updateAdminStats();
+            }
+        } catch(e) {
+            console.error('Approve error:', e);
+            showToast('❌ Ошибка при одобрении: ' + e.message, 'error');
         }
     };
 
-    // ========== 5. АДМИН-ФУНКЦИЯ СОЗДАНИЯ ТОВАРА ==========
+    // ========== 4. ОТКЛОНЕНИЕ ТОВАРА ==========
+    window.rejectProduct = async function(productId) {
+        const reason = prompt("Укажите причину отклонения (необязательно):");
+        try {
+            await API.rejectProduct(productId);
+            showToast('❌ Товар отклонен', 'warning');
+            await window.loadPendingProducts();
+        } catch(e) {
+            console.error('Reject error:', e);
+            showToast('❌ Ошибка при отклонении: ' + e.message, 'error');
+        }
+    };
+
+    // ========== 5. СОЗДАНИЕ ТОВАРА (с проверкой прав) ==========
     window.createAdminProduct = async function() {
         console.log('👑 createAdminProduct (GLOBAL FIX)');
         
+        const isAdmin = await isCurrentUserAdmin();
         const title = document.getElementById('postTitle')?.value.trim();
         const price = document.getElementById('postPrice')?.value.trim();
         const description = document.getElementById('postDescription')?.value.trim();
-        const seller = document.getElementById('postSeller')?.value.trim() || 'Admin';
+        const seller = document.getElementById('postSeller')?.value.trim() || 
+                      (isAdmin ? 'Admin' : localStorage.getItem('apex_user') || 'Гость');
         const imageUrl = document.getElementById('postImageUrl')?.value.trim();
         const keywordSelect = document.getElementById('postKeyword');
         const keywordId = keywordSelect?.value;
         
         if (!title || !price) {
-            alert('❌ Заполните название и цену');
+            showToast('❌ Заполните название и цену', 'error');
             return;
         }
         
@@ -170,8 +171,14 @@
         };
         
         try {
-            await API.createProduct(newProduct);
-            alert('✅ Товар создан и виден всем пользователям!');
+            // Если админ - публикуем сразу, если нет - на модерацию
+            const result = await API.createProduct(newProduct, isAdmin);
+            
+            if (isAdmin) {
+                showToast('✅ Товар опубликован и виден всем пользователям!', 'success');
+            } else {
+                showToast('📝 Товар отправлен на модерацию. Администратор проверит его в ближайшее время.', 'info');
+            }
             
             // Очищаем форму
             ['postTitle', 'postPrice', 'postDescription', 'postImageUrl', 'postSeller'].forEach(id => {
@@ -183,140 +190,23 @@
             // Обновляем отображение
             await window.loadProducts();
             
-            // Обновляем админ-список если он есть
+            // Обновляем список модерации для админа
+            if (isAdmin) {
+                await window.loadPendingProducts();
+            }
+            
+            // Обновляем админ-список
             if (typeof window.loadAdminProducts === 'function') {
                 await window.loadAdminProducts();
             }
             
         } catch(e) {
             console.error('Create error:', e);
-            alert('❌ Ошибка: ' + e.message);
+            showToast('❌ Ошибка: ' + e.message, 'error');
         }
     };
 
-    // ========== 6. ФУНКЦИЯ УДАЛЕНИЯ ТОВАРА ==========
-    window.deleteProduct = async function(productId) {
-        if (!confirm('Удалить этот товар?')) return;
-        
-        try {
-            await API.deleteProduct(productId);
-            alert('✅ Товар удален');
-            await window.loadProducts();
-            
-            if (typeof window.loadAdminProducts === 'function') {
-                await window.loadAdminProducts();
-            }
-            if (typeof window.renderUserProductsList === 'function') {
-                await window.renderUserProductsList();
-            }
-            if (typeof window.loadUserProductsInProfile === 'function') {
-                await window.loadUserProductsInProfile();
-            }
-        } catch(e) {
-            alert('❌ Ошибка: ' + e.message);
-        }
-    };
-
-    // ========== 7. ФУНКЦИЯ ДЛЯ СТРАНИЦЫ ТОВАРОВ ==========
-    window.renderUserProductsList = async function() {
-        const container = document.getElementById('userProductsList');
-        if (!container) return;
-        
-        const currentUser = localStorage.getItem('apex_user') || 'Гость';
-        const products = await API.getProducts();
-        const userProducts = products.filter(p => p.seller === currentUser);
-        
-        const totalSpan = document.getElementById('userProductsTotalCount');
-        if (totalSpan) totalSpan.innerText = `Всего: ${userProducts.length}`;
-        
-        if (userProducts.length === 0) {
-            container.innerHTML = '<div class="empty-products-state">У вас пока нет товаров</div>';
-            return;
-        }
-        
-        container.innerHTML = userProducts.map(p => `
-            <div class="product-item-card">
-                <img class="product-item-img" src="${p.image_url || 'https://picsum.photos/id/42/60/60'}">
-                <div class="product-item-info">
-                    <div class="product-item-title">${p.title}</div>
-                    <div class="product-item-price">${p.price}</div>
-                </div>
-                <div class="product-item-actions">
-                    <button class="delete-product-btn" onclick="window.deleteProduct('${p.id}')">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-        `).join('');
-    };
-
-    // ========== 8. ФУНКЦИЯ ДЛЯ ПРОФИЛЯ ==========
-    window.loadUserProductsInProfile = async function() {
-        const container = document.getElementById('profileProductsList');
-        if (!container) return;
-        
-        const currentUser = localStorage.getItem('apex_user') || 'Гость';
-        const products = await API.getProducts();
-        const userProducts = products.filter(p => p.seller === currentUser);
-        
-        if (userProducts.length === 0) {
-            container.innerHTML = `
-                <div class="empty-products">
-                    <i class="fas fa-box-open"></i>
-                    <p>Нет товаров</p>
-                    <button class="btn-glow sell-btn" onclick="window.openModal()">Выставить товар</button>
-                </div>
-            `;
-            return;
-        }
-        
-        container.innerHTML = userProducts.map(p => `
-            <div class="profile-product-item" onclick="window.openProductDetailById('${p.id}')">
-                <img class="profile-product-img" src="${p.image_url || 'https://picsum.photos/id/42/50/50'}">
-                <div class="profile-product-info">
-                    <div class="profile-product-title">${p.title}</div>
-                    <div class="profile-product-price">${p.price}</div>
-                    <div class="profile-product-status status-active">● Активен</div>
-                </div>
-            </div>
-        `).join('');
-        
-        const countSpan = document.getElementById('profileProductsCount');
-        if (countSpan) countSpan.innerText = userProducts.length;
-    };
-
-    // ========== 9. АДМИН-СПИСОК ТОВАРОВ ==========
-    window.loadAdminProducts = async function() {
-        const container = document.getElementById('adminProductsList');
-        if (!container) return;
-        
-        const products = await API.getProducts();
-        
-        if (products.length === 0) {
-            container.innerHTML = '<div style="text-align:center;padding:20px;">Нет товаров</div>';
-            return;
-        }
-        
-        container.innerHTML = products.map(p => `
-            <div class="admin-product-item">
-                <div class="admin-product-info">
-                    <div class="admin-product-title">${p.title}</div>
-                    <div class="admin-product-price">${p.price}</div>
-                    <div class="admin-product-seller">Продавец: ${p.seller}</div>
-                </div>
-                <div class="admin-product-actions">
-                    <button class="admin-delete-btn" onclick="window.deleteProduct('${p.id}')">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-        `).join('');
-        
-        const countSpan = document.getElementById('adminProductsCount');
-        if (countSpan) countSpan.innerText = products.length;
-    };
-
-    // ========== 10. СОЗДАНИЕ ТОВАРА (ДЛЯ ОБЫЧНЫХ ПОЛЬЗОВАТЕЛЕЙ) ==========
+    // ========== 6. СОЗДАНИЕ ТОВАРА ДЛЯ ОБЫЧНЫХ ПОЛЬЗОВАТЕЛЕЙ ==========
     window.createNewProduct = async function() {
         const title = document.getElementById('productTitle')?.value;
         const price = document.getElementById('productPrice')?.value;
@@ -325,7 +215,7 @@
         const keywordId = keywordSelect?.value;
         
         if (!title || !price) {
-            alert('Заполните название и цену');
+            showToast('Заполните название и цену', 'error');
             return;
         }
         
@@ -348,8 +238,9 @@
         };
         
         try {
-            await API.createProduct(newProduct);
-            alert('✅ Товар создан!');
+            // Обычный пользователь - товар идёт на модерацию
+            await API.createProduct(newProduct, false);
+            showToast('📝 Товар отправлен на модерацию! Администратор проверит его.', 'info');
             
             // Очищаем форму
             ['productTitle', 'productPrice', 'productDescription', 'productImageUrl'].forEach(id => {
@@ -358,47 +249,89 @@
             });
             if (keywordSelect) keywordSelect.value = '';
             
-            await window.loadProducts();
-            
+            // Закрываем форму
             const form = document.getElementById('createProductForm');
             if (form) form.style.display = 'none';
             
         } catch(e) {
-            alert('❌ Ошибка: ' + e.message);
+            showToast('❌ Ошибка: ' + e.message, 'error');
         }
     };
 
-    // ========== 11. ОБНОВЛЕНИЕ СТАТИСТИКИ АДМИНА ==========
-    window.updateAdminStats = async function() {
+    // ========== 7. ЗАГРУЗКА КЛЮЧЕВЫХ СЛОВ ==========
+    window.loadKeywordsGlobal = async function() {
         try {
-            const products = await API.getProducts();
-            const countSpan = document.getElementById('adminProductsCount');
-            if (countSpan) countSpan.innerText = products.length;
-        } catch(e) {}
+            const keywords = await API.getKeywords();
+            window.keywords = keywords;
+            
+            // Обновляем все селекты
+            const selects = ['postKeyword', 'productKeywordSelect', 'newGameKeyword', 'newAppKeyword', 'editKeyword'];
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                if (select) {
+                    const currentValue = select.value;
+                    select.innerHTML = '<option value="">Выберите категорию</option>';
+                    keywords.forEach(k => {
+                        select.innerHTML += `<option value="${k.id}">${k.name} - ${k.type}</option>`;
+                    });
+                    if (currentValue && keywords.some(k => k.id === currentValue)) {
+                        select.value = currentValue;
+                    }
+                }
+            });
+            
+            console.log(`✅ Загружено ${keywords.length} ключевых слов`);
+            return keywords;
+        } catch(e) {
+            console.error('loadKeywordsGlobal error:', e);
+            return [];
+        }
     };
 
-    // ========== 12. АВТОМАТИЧЕСКАЯ ЗАГРУЗКА ПРИ СТАРТЕ ==========
+    // ========== 8. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+    
+    function showToast(message, type = 'success') {
+        let toast = document.getElementById('customToast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'customToast';
+            toast.className = 'toast-notification';
+            document.body.appendChild(toast);
+        }
+        
+        const icon = type === 'success' ? 'fa-check-circle' : (type === 'error' ? 'fa-exclamation-triangle' : 'fa-info-circle');
+        toast.innerHTML = `<i class="fas ${icon}"></i><span>${message}</span>`;
+        toast.className = `toast-notification ${type === 'error' ? 'error' : (type === 'info' ? 'info' : 'success')} show`;
+        
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
+    }
+
+    // ========== 9. АВТОМАТИЧЕСКАЯ ЗАГРУЗКА ==========
     async function initAll() {
         console.log('📄 Инициализация всех данных...');
         
         // Загружаем ключевые слова
         await window.loadKeywordsGlobal();
         
-        // Загружаем товары
+        // Загружаем одобренные товары
         await window.loadProducts();
         
-        // Загружаем товары в профиль если страница активна
-        if (document.getElementById('profile')?.classList?.contains('active')) {
-            await window.loadUserProductsInProfile();
+        // Загружаем товары на модерацию (если пользователь админ)
+        const isAdmin = await isCurrentUserAdmin();
+        if (isAdmin) {
+            await window.loadPendingProducts();
         }
-        
-        // Загружаем список товаров пользователя
-        if (document.getElementById('products-manage')?.classList?.contains('active')) {
-            await window.renderUserProductsList();
-        }
-        
-        // Обновляем статистику админа
-        await window.updateAdminStats();
         
         console.log('✅ Все данные синхронизированы с сервером');
     }
@@ -410,5 +343,5 @@
         initAll();
     }
 
-    console.log('✅ GLOBAL FIX загружен - все функции синхронизированы с API');
+    console.log('✅ GLOBAL FIX загружен');
 })();
