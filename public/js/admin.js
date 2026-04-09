@@ -11,29 +11,23 @@ let adminDialogs = [];
 const ADMIN_PASSWORD = "admin123";
 
 // Обновляем функцию initAdmin, чтобы она загружала данные с сервера
-function initAdmin() {
+async function initAdmin() {
     console.log("initAdmin started");
-    loadAdmins();
-    loadKeywords();  // теперь асинхронная
+    await loadKeywords();
+    await loadPendingProducts();
+    await loadAdminProducts();
     loadGameBlocks();
     loadAppBlocks();
-    loadPendingProducts();
+    loadAdmins();
     loadAdminDialogs();
-    loadAdminProducts();  // теперь асинхронная
-    updateKeywordSelect();
-    updateGameKeywordSelect();
-    updateAppKeywordSelect();
     renderGamesBlocks();
     renderAppsBlocks();
     renderAdminsList();
-    renderPendingProductsList();
     renderAdminDialogsList();
     setupAdminChatListeners();
     renderAdminNavButtons();
     updateAdminStats();
-    renderKeywords();
 }
-
 function updateAdminStats() {
   const products = JSON.parse(localStorage.getItem("apex_products") || "[]");
   const productsCount = document.getElementById("adminProductsCount");
@@ -159,15 +153,17 @@ function isUserAdmin(username) {
 
 // ==================== 2. МОДЕРАЦИЯ ТОВАРОВ ====================
 
-function loadPendingProducts() {
-  const stored = localStorage.getItem("apex_pending_products");
-  if (stored) {
-    pendingProducts = JSON.parse(stored);
-  } else {
-    pendingProducts = [];
-    localStorage.setItem("apex_pending_products", JSON.stringify(pendingProducts));
-  }
-  renderPendingProductsList();
+async function loadPendingProducts() {
+    try {
+        const response = await fetch('/api/pending-products');
+        if (!response.ok) throw new Error('Ошибка загрузки');
+        pendingProducts = await response.json();
+        renderPendingProductsList();
+        updateAdminStats();
+    } catch(e) {
+        console.error('Ошибка загрузки pending:', e);
+        pendingProducts = [];
+    }
 }
 
 function savePendingProducts() {
@@ -206,43 +202,30 @@ function renderPendingProductsList() {
   `).join('');
 }
 
-function approveProduct(productId) {
-  const product = pendingProducts.find(p => p.id === productId);
-  if (!product) return;
-  
-  delete product.isPending;
-  
-  let products = JSON.parse(localStorage.getItem("apex_products") || "[]");
-  products.unshift(product);
-  localStorage.setItem("apex_products", JSON.stringify(products));
-  
-  pendingProducts = pendingProducts.filter(p => p.id !== productId);
-  savePendingProducts();
-  renderPendingProductsList();
-  updateAdminStats();
-  
-  if (window.productsArray) {
-    window.productsArray = products;
-    if (typeof filterProducts === 'function') filterProducts();
-  }
-  
-  sendModerationNotification(product.seller, product.title, true);
-  showToast(`✅ Товар "${product.title}" одобрен!`, "success");
+async function approveProduct(productId) {
+    try {
+        const response = await fetch(`/api/approve-product/${productId}`, { method: 'POST' });
+        if (!response.ok) throw new Error('Ошибка одобрения');
+        
+        await loadPendingProducts();
+        await loadAdminProducts();
+        if (typeof window.loadProducts === 'function') await window.loadProducts();
+        showToast("✅ Товар одобрен и опубликован", "success");
+    } catch(e) {
+        showToast("❌ Ошибка: " + e.message, "error");
+    }
 }
-
-function rejectProduct(productId) {
-  const product = pendingProducts.find(p => p.id === productId);
-  if (!product) return;
-  
-  const reason = prompt("Укажите причину отклонения (необязательно):");
-  
-  pendingProducts = pendingProducts.filter(p => p.id !== productId);
-  savePendingProducts();
-  renderPendingProductsList();
-  updateAdminStats();
-  
-  sendModerationNotification(product.seller, product.title, false, reason);
-  showToast(`❌ Товар "${product.title}" отклонен`, "warning");
+async function rejectProduct(productId) {
+    if (!confirm("Отклонить товар?")) return;
+    try {
+        const response = await fetch(`/api/pending-products/${productId}`, { method: 'DELETE' });
+        if (!response.ok) throw new Error('Ошибка отклонения');
+        
+        await loadPendingProducts();
+        showToast("❌ Товар отклонён", "warning");
+    } catch(e) {
+        showToast("❌ Ошибка: " + e.message, "error");
+    }
 }
 
 function sendModerationNotification(sellerName, productTitle, approved, reason = "") {
@@ -1066,17 +1049,17 @@ function editAppBlock(id) {
 
 async function loadKeywords() {
     try {
-        const keywords = await API.getKeywords();
-        window.keywords = keywords;
+        const response = await fetch('/api/keywords');
+        if (!response.ok) throw new Error('Ошибка загрузки ключевых слов');
+        keywords = await response.json();
         renderKeywords();
         updateKeywordSelect();
         updateGameKeywordSelect();
         updateAppKeywordSelect();
-        console.log('✅ Загружено ключевых слов:', keywords.length);
-    } catch (error) {
-        console.error('Ошибка загрузки ключевых слов:', error);
-        window.keywords = [];
-        renderKeywords();
+        console.log('✅ Ключевые слова загружены:', keywords.length);
+    } catch(e) {
+        console.error('Ошибка загрузки ключевых слов:', e);
+        keywords = [];
     }
 }
 
@@ -1131,31 +1114,31 @@ async function deleteKeyword(keywordId) {
     }
 }
 
-function renderKeywords() {
-    const container = document.getElementById("keywordsList");
-    if (!container) return;
+// function renderKeywords() {
+//     const container = document.getElementById("keywordsList");
+//     if (!container) return;
     
-    const keywords = window.keywords || [];
+//     const keywords = window.keywords || [];
     
-    if (keywords.length === 0) {
-        container.innerHTML = '<div class="empty-state">Нет ключевых слов</div>';
-        return;
-    }
+//     if (keywords.length === 0) {
+//         container.innerHTML = '<div class="empty-state">Нет ключевых слов</div>';
+//         return;
+//     }
     
-    container.innerHTML = keywords.map(k => `
-        <div class="keyword-item">
-            <div class="keyword-info">
-                <span class="keyword-name">${escapeHtml(k.name)}</span>
-                <span class="keyword-type">${escapeHtml(k.type)}</span>
-            </div>
-            <div class="keyword-actions">
-                <button class="delete-keyword-btn" onclick="deleteKeyword('${k.id}')">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        </div>
-    `).join('');
-}
+//     container.innerHTML = keywords.map(k => `
+//         <div class="keyword-item">
+//             <div class="keyword-info">
+//                 <span class="keyword-name">${escapeHtml(k.name)}</span>
+//                 <span class="keyword-type">${escapeHtml(k.type)}</span>
+//             </div>
+//             <div class="keyword-actions">
+//                 <button class="delete-keyword-btn" onclick="deleteKeyword('${k.id}')">
+//                     <i class="fas fa-trash"></i>
+//                 </button>
+//             </div>
+//         </div>
+//     `).join('');
+// }
 
 function updateKeywordSelect() {
     const select = document.getElementById("postKeyword");
@@ -1212,67 +1195,61 @@ async function updateAdminStats() {
     if (dialogsCount) dialogsCount.innerText = adminDialogs.length;
 }
 
-function saveKeywords() {
-  localStorage.setItem("apex_keywords", JSON.stringify(keywords));
-}
+// function saveKeywords() {
+//   localStorage.setItem("apex_keywords", JSON.stringify(keywords));
+// }
 
-function renderKeywords() {
-  const container = document.getElementById("keywordsList");
-  if (!container) return;
+// function renderKeywords() {
+//   const container = document.getElementById("keywordsList");
+//   if (!container) return;
   
-  if (keywords.length === 0) {
-    container.innerHTML = '<div class="empty-state">Нет ключевых слов</div>';
-    return;
-  }
+//   if (keywords.length === 0) {
+//     container.innerHTML = '<div class="empty-state">Нет ключевых слов</div>';
+//     return;
+//   }
   
-  container.innerHTML = keywords.map(k => `
-    <div class="keyword-item">
-      <div class="keyword-info">
-        <span class="keyword-name">${escapeHtml(k.name)}</span>
-        <span class="keyword-type">${escapeHtml(k.type)}</span>
-      </div>
-      <div class="keyword-actions">
-        <button class="edit-keyword-btn" onclick="editKeyword('${k.id}')">
-          <i class="fas fa-edit"></i>
-        </button>
-        <button class="delete-keyword-btn" onclick="deleteKeyword('${k.id}')">
-          <i class="fas fa-trash"></i>
-        </button>
-      </div>
-    </div>
-  `).join('');
-}
+//   container.innerHTML = keywords.map(k => `
+//     <div class="keyword-item">
+//       <div class="keyword-info">
+//         <span class="keyword-name">${escapeHtml(k.name)}</span>
+//         <span class="keyword-type">${escapeHtml(k.type)}</span>
+//       </div>
+//       <div class="keyword-actions">
+//         <button class="edit-keyword-btn" onclick="editKeyword('${k.id}')">
+//           <i class="fas fa-edit"></i>
+//         </button>
+//         <button class="delete-keyword-btn" onclick="deleteKeyword('${k.id}')">
+//           <i class="fas fa-trash"></i>
+//         </button>
+//       </div>
+//     </div>
+//   `).join('');
+// }
 
-function addKeyword() {
-  const name = document.getElementById("newKeywordName")?.value.trim();
-  const type = document.getElementById("newKeywordType")?.value.trim();
-  
-  if (!name) {
-    showToast("Введите название ключевого слова", "error");
-    return;
-  }
-  
-  const newKeyword = {
-    id: Date.now().toString(),
-    name: name,
-    type: type || "Стандарт"
-  };
-  
-  keywords.push(newKeyword);
-  saveKeywords();
-  renderKeywords();
-  updateKeywordSelect();
-  updateGameKeywordSelect();
-  updateAppKeywordSelect();
-  
-  if (document.getElementById("newKeywordName")) {
-    document.getElementById("newKeywordName").value = "";
-  }
-  if (document.getElementById("newKeywordType")) {
-    document.getElementById("newKeywordType").value = "";
-  }
-  
-  showToast(`✅ Ключевое слово "${name}" добавлено!`, "success");
+async function addKeyword() {
+    const name = document.getElementById("newKeywordName")?.value.trim();
+    const type = document.getElementById("newKeywordType")?.value.trim();
+    
+    if (!name) {
+        showToast("Введите название ключевого слова", "error");
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/keywords', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, type: type || "Стандарт" })
+        });
+        if (!response.ok) throw new Error('Ошибка создания');
+        
+        await loadKeywords();
+        document.getElementById("newKeywordName").value = "";
+        document.getElementById("newKeywordType").value = "";
+        showToast(`✅ Ключевое слово "${name}" добавлено!`, "success");
+    } catch(e) {
+        showToast("❌ Ошибка: " + e.message, "error");
+    }
 }
 
 function editKeyword(keywordId) {
@@ -1289,7 +1266,7 @@ function editKeyword(keywordId) {
     keyword.type = newType.trim() || "Стандарт";
   }
   
-  saveKeywords();
+  // saveKeywords();
   renderKeywords();
   updateKeywordSelect();
   updateGameKeywordSelect();
@@ -1298,16 +1275,16 @@ function editKeyword(keywordId) {
   showToast(`✅ Ключевое слово обновлено!`, "success");
 }
 
-function deleteKeyword(keywordId) {
-  if (confirm("Удалить это ключевое слово? Все товары с ним останутся, но категория пропадёт.")) {
-    keywords = keywords.filter(k => k.id !== keywordId);
-    saveKeywords();
-    renderKeywords();
-    updateKeywordSelect();
-    updateGameKeywordSelect();
-    updateAppKeywordSelect();
-    showToast("✅ Ключевое слово удалено", "success");
-  }
+async function deleteKeyword(keywordId) {
+    if (!confirm("Удалить это ключевое слово?")) return;
+    try {
+        const response = await fetch(`/api/keywords/${keywordId}`, { method: 'DELETE' });
+        if (!response.ok) throw new Error('Ошибка удаления');
+        await loadKeywords();
+        showToast("✅ Ключевое слово удалено", "success");
+    } catch(e) {
+        showToast("❌ Ошибка: " + e.message, "error");
+    }
 }
 
 function updateKeywordSelect() {
@@ -1347,132 +1324,89 @@ async function loadAdminProducts() {
     if (!container) return;
     
     try {
-        const products = await API.getProducts();
+        const response = await fetch('/api/products');
+        if (!response.ok) throw new Error('Ошибка загрузки');
+        const products = await response.json();
         
         if (products.length === 0) {
             container.innerHTML = "<div style='color: var(--text-muted); text-align: center; padding: 20px;'>Нет товаров</div>";
-            return;
+        } else {
+            container.innerHTML = products.map(p => `
+                <div class="admin-product-item">
+                    <div class="admin-product-info">
+                        <div class="admin-product-title">${escapeHtml(p.title)}</div>
+                        <div class="admin-product-price">${escapeHtml(p.price)}</div>
+                        <div class="admin-product-keyword">${escapeHtml(p.keyword || 'Без категории')}</div>
+                        <div class="admin-product-seller">Продавец: ${escapeHtml(p.seller)}</div>
+                    </div>
+                    <div class="admin-product-actions">
+                        <button class="admin-edit-btn" onclick="editProduct('${p.id}')"><i class="fas fa-edit"></i></button>
+                        <button class="admin-delete-btn" onclick="deleteProduct('${p.id}')"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            `).join('');
         }
         
-        container.innerHTML = products.map(p => `
-            <div class="admin-product-item">
-                <div class="admin-product-info">
-                    <div class="admin-product-title">${escapeHtml(p.title)}</div>
-                    <div class="admin-product-price">${escapeHtml(p.price)}</div>
-                    <div class="admin-product-keyword">${escapeHtml(p.keyword || 'Без категории')}</div>
-                    <div class="admin-product-seller">Продавец: ${escapeHtml(p.seller)}</div>
-                </div>
-                <div class="admin-product-actions">
-                    <button class="admin-edit-btn" onclick="editProduct('${p.id}')"><i class="fas fa-edit"></i></button>
-                    <button class="admin-delete-btn" onclick="deleteProduct('${p.id}')"><i class="fas fa-trash"></i></button>
-                </div>
-            </div>
-        `).join('');
-        
-        // Обновляем счетчик
         const countSpan = document.getElementById("adminProductsCount");
         if (countSpan) countSpan.innerText = products.length;
-        
-    } catch (error) {
-        console.error('Ошибка загрузки товаров:', error);
-        container.innerHTML = "<div style='color: red;'>Ошибка загрузки товаров</div>";
+    } catch(e) {
+        console.error('Ошибка загрузки товаров:', e);
+        container.innerHTML = "<div style='color: red;'>Ошибка загрузки</div>";
     }
-  }
+}
 
-  async function createAdminProduct() {
+async function createAdminProduct() {
     const keywordId = document.getElementById("postKeyword")?.value;
     const title = document.getElementById("postTitle")?.value.trim();
     const price = document.getElementById("postPrice")?.value.trim();
     const discount = document.getElementById("postDiscount")?.value.trim();
     const description = document.getElementById("postDescription")?.value.trim();
     const imageUrl = document.getElementById("postImageUrl")?.value.trim();
-    const seller = document.getElementById("postSeller")?.value.trim() || window.currentUser || "Admin";
+    const seller = document.getElementById("postSeller")?.value.trim() || localStorage.getItem("apex_user") || "Admin";
     
-    if (!keywordId) { 
-        showToast("Выберите ключевое слово", "error");
-        return; 
-    }
-    if (!title) { 
-        showToast("Введите название", "error");
-        return; 
-    }
-    if (!price) { 
-        showToast("Введите цену", "error");
-        return; 
+    if (!keywordId || !title || !price) {
+        showToast("Заполните ключевое слово, название и цену", "error");
+        return;
     }
     
-    // Находим выбранное ключевое слово
     let keywordName = "Без категории";
-    try {
-        const keywords = await API.getKeywords();
-        const selectedKeyword = keywords.find(k => k.id === keywordId);
-        if (selectedKeyword) {
-            keywordName = selectedKeyword.name;
-        }
-    } catch(e) {
-        console.error('Error getting keyword:', e);
-    }
+    const kw = keywords.find(k => k.id === keywordId);
+    if (kw) keywordName = kw.name;
     
-    // Формируем полное описание
-    let fullDescription = description || "Новый товар от администратора";
-    fullDescription += "\n\nМоментальная выдача. Гарантия качества.";
-    
-    // Обработка цены со скидкой
-    let finalPrice = price;
-    let originalPrice = null;
-    let discountText = discount || null;
-    
-    if (discount) {
-        const discountValue = parseFloat(discount);
-        const priceValue = parseFloat(price.replace(/[^0-9.-]/g, ''));
-        if (!isNaN(priceValue) && !isNaN(discountValue)) {
-            if (discount.includes('%')) {
-                const newPrice = priceValue * (1 - discountValue / 100);
-                finalPrice = Math.round(newPrice) + ' ₽';
-                originalPrice = price;
-            } else {
-                finalPrice = (priceValue - discountValue) + ' ₽';
-                originalPrice = price;
-            }
-        }
-    }
-    
-    const newProduct = {
+    const productData = {
         title: title,
-        price: finalPrice,
+        price: price,
         seller: seller,
         keyword: keywordName,
         image_url: imageUrl || "https://picsum.photos/id/42/400/200",
-        description: fullDescription,
-        discount: discountText,
-        originalPrice: originalPrice
+        description: description || "Новый товар от администратора",
+        discount: discount || null
     };
     
     try {
-        // ⭐ ОТПРАВЛЯЕМ НА СЕРВЕР ⭐
-        const savedProduct = await API.createProduct(newProduct);
+        const response = await fetch('/api/products', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(productData)
+        });
+        if (!response.ok) throw new Error('Ошибка создания');
         
-        console.log('Товар сохранен на сервере:', savedProduct);
-        showToast('✅ Товар добавлен и виден всем!', 'success');
+        showToast("✅ Товар создан и сразу опубликован", "success");
         
-        // Очищаем форму
-        clearProductForm();
+        document.getElementById("postTitle").value = "";
+        document.getElementById("postPrice").value = "";
+        document.getElementById("postDiscount").value = "";
+        document.getElementById("postDescription").value = "";
+        document.getElementById("postImageUrl").value = "";
+        document.getElementById("postSeller").value = "";
+        document.getElementById("postKeyword").value = "";
         
-        // Перезагружаем списки
         await loadAdminProducts();
-        if (typeof loadProducts === 'function') {
-            await loadProducts();
-        }
-        
-        // Обновляем счетчики
-        updateAdminStats();
-        
-    } catch (error) {
-        console.error('Ошибка при сохранении:', error);
-        showToast('❌ Ошибка при сохранении: ' + error.message, 'error');
+        if (typeof window.loadProducts === 'function') await window.loadProducts();
+    } catch(e) {
+        showToast("❌ Ошибка: " + e.message, "error");
     }
 }
-
 // Очистка формы
 function clearProductForm() {
     document.getElementById("postKeyword").value = "";
@@ -1485,27 +1419,18 @@ function clearProductForm() {
     document.getElementById("postSeller").value = "";
 }
 async function deleteProduct(productId) {
-    if (confirm("Удалить этот товар?")) {
-        try {
-            await API.deleteProduct(productId);
-            showToast("✅ Товар удалён", "success");
-            
-            // Перезагружаем списки
-            await loadAdminProducts();
-            if (typeof loadProducts === 'function') {
-                await loadProducts();
-            }
-            
-            // Обновляем счетчики
-            updateAdminStats();
-            
-        } catch (error) {
-            console.error('Ошибка удаления:', error);
-            showToast("❌ Ошибка при удалении: " + error.message, "error");
-        }
+    if (!confirm("Удалить этот товар?")) return;
+    try {
+        const response = await fetch(`/api/products/${productId}`, { method: 'DELETE' });
+        if (!response.ok) throw new Error('Ошибка удаления');
+        
+        await loadAdminProducts();
+        if (typeof window.loadProducts === 'function') await window.loadProducts();
+        showToast("✅ Товар удалён", "success");
+    } catch(e) {
+        showToast("❌ Ошибка: " + e.message, "error");
     }
 }
-
 function editProduct(productId) {
     // Сначала получаем товары с сервера
     API.getProducts().then(products => {
