@@ -1,5 +1,5 @@
 // ============================================
-// GLOBAL FIX - ПОЛНАЯ СИНХРОНИЗАЦИЯ С API
+// GLOBAL FIX - ПОЛНАЯ СИНХРОНИЗАЦИЯ С СЕРВЕРОМ
 // ============================================
 
 (function() {
@@ -8,49 +8,42 @@
     // Проверка, является ли пользователь админом
     async function isCurrentUserAdmin() {
         const currentUser = localStorage.getItem('apex_user') || 'Гость';
-        const admins = JSON.parse(localStorage.getItem('apex_admins') || '[]');
+        const admins = JSON.parse(localStorage.getItem('apex_admins') || '[{"username":"Admin","isOwner":true}]');
         return admins.some(a => a.username === currentUser);
     }
 
-    // ========== 1. ЗАГРУЗКА ТОВАРОВ (только одобренные) ==========
+    // ========== ЗАГРУЗКА ТОВАРОВ ==========
     window.loadProducts = async function() {
-        console.log('🔄 loadProducts (GLOBAL FIX)');
+        console.log('🔄 Загрузка товаров с сервера...');
         try {
             const products = await API.getProducts();
             window.productsArray = products;
             
-            // Отрисовка на главной странице
             const grid = document.getElementById('productsGrid');
             if (grid) {
                 if (products.length === 0) {
                     grid.innerHTML = '<div class="empty-state">Нет товаров</div>';
                 } else {
-                    let html = '';
-                    products.forEach(p => {
-                        html += `
-                            <div class="product-card" onclick="window.openProductDetailById('${p.id}')">
-                                <div class="card-image">
-                                    <img src="${p.image_url || 'https://picsum.photos/id/42/400/300'}" 
-                                         onerror="this.src='https://picsum.photos/id/42/400/300'">
-                                    ${p.discount ? `<span class="discount-badge">🔥 ${p.discount}</span>` : ''}
-                                </div>
-                                <div class="card-body">
-                                    <div class="price-wrapper">
-                                        <span class="current-price">${p.price}</span>
-                                    </div>
-                                    <h3 class="product-title">${(p.title || 'Без названия').substring(0, 50)}</h3>
-                                </div>
+                    grid.innerHTML = products.map(p => `
+                        <div class="product-card" onclick="window.openProductDetailById('${p.id}')">
+                            <div class="card-image">
+                                <img src="${p.image_url || 'https://picsum.photos/id/42/400/300'}" 
+                                     onerror="this.src='https://picsum.photos/id/42/400/300'">
+                                ${p.discount ? `<span class="discount-badge">🔥 ${p.discount}</span>` : ''}
                             </div>
-                        `;
-                    });
-                    grid.innerHTML = html;
+                            <div class="card-body">
+                                <div class="current-price">${p.price}</div>
+                                <h3 class="product-title">${(p.title || '').substring(0, 50)}</h3>
+                            </div>
+                        </div>
+                    `).join('');
                 }
             }
             
             const countSpan = document.getElementById('productCountStat');
             if (countSpan) countSpan.innerText = products.length;
             
-            console.log(`✅ Загружено ${products.length} одобренных товаров`);
+            console.log(`✅ Загружено ${products.length} товаров`);
             return products;
         } catch(e) {
             console.error('loadProducts error:', e);
@@ -58,7 +51,42 @@
         }
     };
 
-    // ========== 2. ЗАГРУЗКА ТОВАРОВ НА МОДЕРАЦИИ (только для админов) ==========
+    // ========== ЗАГРУЗКА КЛЮЧЕВЫХ СЛОВ ==========
+    window.loadKeywordsGlobal = async function() {
+        try {
+            const keywords = await API.getKeywords();
+            window.keywords = keywords;
+            
+            const selects = ['postKeyword', 'productKeywordSelect', 'newGameKeyword', 'newAppKeyword', 'editKeyword'];
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                if (select) {
+                    const currentValue = select.value;
+                    select.innerHTML = '<option value="">Выберите категорию</option>';
+                    keywords.forEach(k => {
+                        select.innerHTML += `<option value="${k.id}">${k.name} - ${k.type || 'Стандарт'}</option>`;
+                    });
+                    if (currentValue && keywords.some(k => k.id === currentValue)) {
+                        select.value = currentValue;
+                    }
+                }
+            });
+            
+            // Обновляем список в админке
+            const keywordsContainer = document.getElementById('keywordsList');
+            if (keywordsContainer && typeof renderKeywords === 'function') {
+                renderKeywords();
+            }
+            
+            console.log(`✅ Загружено ${keywords.length} ключевых слов`);
+            return keywords;
+        } catch(e) {
+            console.error('loadKeywordsGlobal error:', e);
+            return [];
+        }
+    };
+
+    // ========== ЗАГРУЗКА ТОВАРОВ НА МОДЕРАЦИИ ==========
     window.loadPendingProducts = async function() {
         const isAdmin = await isCurrentUserAdmin();
         if (!isAdmin) return [];
@@ -66,7 +94,6 @@
         try {
             const pending = await API.getPendingProducts();
             
-            // Обновляем админский список
             const container = document.getElementById('pendingProductsList');
             if (container) {
                 if (pending.length === 0) {
@@ -102,17 +129,13 @@
         }
     };
 
-    // ========== 3. ОДОБРЕНИЕ ТОВАРА ==========
+    // ========== ОДОБРЕНИЕ ТОВАРА ==========
     window.approveProduct = async function(productId) {
         try {
             await API.approveProduct(productId);
             showToast('✅ Товар одобрен и виден всем пользователям!', 'success');
-            
-            // Обновляем списки
             await window.loadPendingProducts();
             await window.loadProducts();
-            
-            // Обновляем админ-статистику
             if (typeof window.updateAdminStats === 'function') {
                 await window.updateAdminStats();
             }
@@ -122,9 +145,8 @@
         }
     };
 
-    // ========== 4. ОТКЛОНЕНИЕ ТОВАРА ==========
+    // ========== ОТКЛОНЕНИЕ ТОВАРА ==========
     window.rejectProduct = async function(productId) {
-        const reason = prompt("Укажите причину отклонения (необязательно):");
         try {
             await API.rejectProduct(productId);
             showToast('❌ Товар отклонен', 'warning');
@@ -135,16 +157,13 @@
         }
     };
 
-    // ========== 5. СОЗДАНИЕ ТОВАРА (с проверкой прав) ==========
+    // ========== СОЗДАНИЕ ТОВАРА (АДМИН) ==========
     window.createAdminProduct = async function() {
-        console.log('👑 createAdminProduct (GLOBAL FIX)');
-        
         const isAdmin = await isCurrentUserAdmin();
         const title = document.getElementById('postTitle')?.value.trim();
         const price = document.getElementById('postPrice')?.value.trim();
         const description = document.getElementById('postDescription')?.value.trim();
-        const seller = document.getElementById('postSeller')?.value.trim() || 
-                      (isAdmin ? 'Admin' : localStorage.getItem('apex_user') || 'Гость');
+        const seller = document.getElementById('postSeller')?.value.trim() || (isAdmin ? 'Admin' : localStorage.getItem('apex_user') || 'Гость');
         const imageUrl = document.getElementById('postImageUrl')?.value.trim();
         const keywordSelect = document.getElementById('postKeyword');
         const keywordId = keywordSelect?.value;
@@ -154,7 +173,6 @@
             return;
         }
         
-        // Получаем имя ключевого слова
         let keywordName = "Общее";
         if (keywordId && window.keywords) {
             const selected = window.keywords.find(k => k.id === keywordId);
@@ -171,13 +189,12 @@
         };
         
         try {
-            // Если админ - публикуем сразу, если нет - на модерацию
-            const result = await API.createProduct(newProduct, isAdmin);
+            await API.createProduct(newProduct, isAdmin);
             
             if (isAdmin) {
-                showToast('✅ Товар опубликован и виден всем пользователям!', 'success');
+                showToast('✅ Товар опубликован и виден всем!', 'success');
             } else {
-                showToast('📝 Товар отправлен на модерацию. Администратор проверит его в ближайшее время.', 'info');
+                showToast('📝 Товар отправлен на модерацию!', 'info');
             }
             
             // Очищаем форму
@@ -187,108 +204,63 @@
             });
             if (keywordSelect) keywordSelect.value = '';
             
-            // Обновляем отображение
             await window.loadProducts();
-            
-            // Обновляем список модерации для админа
-            if (isAdmin) {
-                await window.loadPendingProducts();
-            }
-            
-            // Обновляем админ-список
-            if (typeof window.loadAdminProducts === 'function') {
-                await window.loadAdminProducts();
-            }
+            if (isAdmin) await window.loadPendingProducts();
+            if (typeof window.loadAdminProducts === 'function') await window.loadAdminProducts();
             
         } catch(e) {
-            console.error('Create error:', e);
             showToast('❌ Ошибка: ' + e.message, 'error');
         }
     };
 
-    // ========== 6. СОЗДАНИЕ ТОВАРА ДЛЯ ОБЫЧНЫХ ПОЛЬЗОВАТЕЛЕЙ ==========
-    window.createNewProduct = async function() {
-        const title = document.getElementById('productTitle')?.value;
-        const price = document.getElementById('productPrice')?.value;
-        const description = document.getElementById('productDescription')?.value;
-        const keywordSelect = document.getElementById('productKeywordSelect');
-        const keywordId = keywordSelect?.value;
+    // ========== УДАЛЕНИЕ ТОВАРА ==========
+    window.deleteProduct = async function(productId) {
+        if (!confirm('Удалить этот товар?')) return;
+        try {
+            await API.deleteProduct(productId);
+            showToast('✅ Товар удален', 'success');
+            await window.loadProducts();
+            if (typeof window.loadAdminProducts === 'function') await window.loadAdminProducts();
+            if (typeof window.renderUserProductsList === 'function') await window.renderUserProductsList();
+        } catch(e) {
+            showToast('❌ Ошибка: ' + e.message, 'error');
+        }
+    };
+
+    // ========== ОТКРЫТИЕ ДЕТАЛЕЙ ТОВАРА ==========
+    window.openProductDetailById = async function(productId) {
+        const products = await API.getProducts();
+        const product = products.find(p => p.id === productId);
+        if (!product) {
+            alert('Товар не найден');
+            return;
+        }
+        alert(`📦 ${product.title}\n💰 ${product.price}\n👤 ${product.seller}\n\n${product.description || ''}`);
+    };
+
+    // ========== ДОБАВЛЕНИЕ КЛЮЧЕВОГО СЛОВА ==========
+    window.addKeyword = async function() {
+        const name = document.getElementById('newKeywordName')?.value.trim();
+        const type = document.getElementById('newKeywordType')?.value.trim();
         
-        if (!title || !price) {
-            showToast('Заполните название и цену', 'error');
+        if (!name) {
+            showToast('Введите название ключевого слова', 'error');
             return;
         }
         
-        // Получаем имя ключевого слова
-        let keywordName = "Общее";
-        if (keywordId && window.keywords) {
-            const selected = window.keywords.find(k => k.id === keywordId);
-            if (selected) keywordName = selected.name;
-        }
-        
-        const currentUser = localStorage.getItem('apex_user') || 'Гость';
-        
-        const newProduct = {
-            title: title,
-            price: price,
-            seller: currentUser,
-            keyword: keywordName,
-            image_url: document.getElementById('productImageUrl')?.value || 'https://picsum.photos/id/42/400/200',
-            description: description || 'Новый товар'
-        };
-        
         try {
-            // Обычный пользователь - товар идёт на модерацию
-            await API.createProduct(newProduct, false);
-            showToast('📝 Товар отправлен на модерацию! Администратор проверит его.', 'info');
+            await API.createKeyword({ name: name, type: type || 'Стандарт' });
+            showToast(`✅ Ключевое слово "${name}" добавлено!`, 'success');
+            await window.loadKeywordsGlobal();
             
-            // Очищаем форму
-            ['productTitle', 'productPrice', 'productDescription', 'productImageUrl'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.value = '';
-            });
-            if (keywordSelect) keywordSelect.value = '';
-            
-            // Закрываем форму
-            const form = document.getElementById('createProductForm');
-            if (form) form.style.display = 'none';
-            
+            if (document.getElementById('newKeywordName')) document.getElementById('newKeywordName').value = '';
+            if (document.getElementById('newKeywordType')) document.getElementById('newKeywordType').value = '';
         } catch(e) {
             showToast('❌ Ошибка: ' + e.message, 'error');
         }
     };
 
-    // ========== 7. ЗАГРУЗКА КЛЮЧЕВЫХ СЛОВ ==========
-    window.loadKeywordsGlobal = async function() {
-        try {
-            const keywords = await API.getKeywords();
-            window.keywords = keywords;
-            
-            // Обновляем все селекты
-            const selects = ['postKeyword', 'productKeywordSelect', 'newGameKeyword', 'newAppKeyword', 'editKeyword'];
-            selects.forEach(selectId => {
-                const select = document.getElementById(selectId);
-                if (select) {
-                    const currentValue = select.value;
-                    select.innerHTML = '<option value="">Выберите категорию</option>';
-                    keywords.forEach(k => {
-                        select.innerHTML += `<option value="${k.id}">${k.name} - ${k.type}</option>`;
-                    });
-                    if (currentValue && keywords.some(k => k.id === currentValue)) {
-                        select.value = currentValue;
-                    }
-                }
-            });
-            
-            console.log(`✅ Загружено ${keywords.length} ключевых слов`);
-            return keywords;
-        } catch(e) {
-            console.error('loadKeywordsGlobal error:', e);
-            return [];
-        }
-    };
-
-    // ========== 8. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+    // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
     function escapeHtml(str) {
         if (!str) return '';
         return String(str).replace(/[&<>]/g, function(m) {
@@ -310,24 +282,19 @@
         
         const icon = type === 'success' ? 'fa-check-circle' : (type === 'error' ? 'fa-exclamation-triangle' : 'fa-info-circle');
         toast.innerHTML = `<i class="fas ${icon}"></i><span>${message}</span>`;
-        toast.className = `toast-notification ${type === 'error' ? 'error' : (type === 'info' ? 'info' : 'success')} show`;
+        toast.className = `toast-notification ${type} show`;
         
         setTimeout(() => {
             toast.classList.remove('show');
         }, 3000);
     }
 
-    // ========== 9. АВТОМАТИЧЕСКАЯ ЗАГРУЗКА ==========
-    async function initAll() {
+    // ========== ИНИЦИАЛИЗАЦИЯ ==========
+    async function init() {
         console.log('📄 Инициализация всех данных...');
-        
-        // Загружаем ключевые слова
         await window.loadKeywordsGlobal();
-        
-        // Загружаем одобренные товары
         await window.loadProducts();
         
-        // Загружаем товары на модерацию (если пользователь админ)
         const isAdmin = await isCurrentUserAdmin();
         if (isAdmin) {
             await window.loadPendingProducts();
@@ -336,12 +303,12 @@
         console.log('✅ Все данные синхронизированы с сервером');
     }
     
-    // Запускаем инициализацию
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initAll);
+        document.addEventListener('DOMContentLoaded', init);
     } else {
-        initAll();
+        init();
     }
-
+    
+    window.showToast = showToast;
     console.log('✅ GLOBAL FIX загружен');
 })();

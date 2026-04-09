@@ -4,35 +4,16 @@ const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
-
-// ============ Порт для Render ============
 const PORT = process.env.PORT || 10000;
 const HOST = '0.0.0.0';
 
-// ============ Middleware с поддержкой Cloudflare ============
-app.use(cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'DELETE', 'PUT', 'OPTIONS', 'HEAD'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'CF-Ray', 'CF-Connecting-IP', 'X-Forwarded-For'],
-    credentials: true
-}));
-
-app.set('trust proxy', true);
+// Middleware
+app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// ============ Логирование ============
-app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
-    next();
-});
-
-// ============ Статические файлы ============
-app.use(express.static(path.join(__dirname, 'public'), {
-    maxAge: '1d'
-}));
-
-// ============ Supabase ============
+// Supabase
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 
@@ -54,7 +35,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ============ API ТОВАРЫ (только одобренные) ============
+// ============ ТОВАРЫ (только одобренные) ============
 app.get('/api/products', async (req, res) => {
     console.log('📦 GET /api/products');
     try {
@@ -72,37 +53,22 @@ app.get('/api/products', async (req, res) => {
     }
 });
 
-// ============ API ТОВАРЫ НА МОДЕРАЦИИ ============
-app.get('/api/pending-products', async (req, res) => {
-    console.log('📦 GET /api/pending-products');
-    try {
-        const { data, error } = await supabase
-            .from('pending_products')
-            .select('*')
-            .order('created_at', { ascending: false });
-        
-        if (error) throw error;
-        res.json(data || []);
-    } catch (err) {
-        console.error('❌ GET pending products error:', err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// ============ СОЗДАНИЕ ТОВАРА (на модерацию) ============
+// ============ СОЗДАНИЕ ТОВАРА (админ - сразу в products) ============
 app.post('/api/products', async (req, res) => {
     console.log('📦 POST /api/products');
     try {
         const product = {
-            id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+            id: Date.now().toString(),
             title: req.body.title,
             price: req.body.price,
-            seller: req.body.seller || 'User',
+            seller: req.body.seller || 'Admin',
             keyword: req.body.keyword || 'Без категории',
             image_url: req.body.image_url || 'https://picsum.photos/id/42/400/200',
             description: req.body.description || '',
             discount: req.body.discount || null,
             original_price: req.body.originalPrice || null,
+            contact: req.body.contact || '',
+            type: req.body.type || 'monthly',
             created_at: new Date().toISOString(),
             status: 'active'
         };
@@ -120,12 +86,46 @@ app.post('/api/products', async (req, res) => {
     }
 });
 
+// ============ УДАЛЕНИЕ ТОВАРА ============
+app.delete('/api/products/:id', async (req, res) => {
+    console.log('🗑️ DELETE /api/products/' + req.params.id);
+    try {
+        const { error } = await supabase
+            .from('products')
+            .delete()
+            .eq('id', req.params.id);
+        
+        if (error) throw error;
+        res.json({ success: true });
+    } catch (err) {
+        console.error('❌ DELETE product error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ============ ТОВАРЫ НА МОДЕРАЦИИ ============
+app.get('/api/pending-products', async (req, res) => {
+    console.log('📦 GET /api/pending-products');
+    try {
+        const { data, error } = await supabase
+            .from('pending_products')
+            .select('*')
+            .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        res.json(data || []);
+    } catch (err) {
+        console.error('❌ GET pending products error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ============ ДОБАВЛЕНИЕ ТОВАРА НА МОДЕРАЦИЮ ============
 app.post('/api/pending-products', async (req, res) => {
     console.log('📦 POST /api/pending-products');
     try {
         const pendingProduct = {
-            id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+            id: Date.now().toString(),
             title: req.body.title,
             price: req.body.price,
             seller: req.body.seller || 'User',
@@ -134,6 +134,8 @@ app.post('/api/pending-products', async (req, res) => {
             description: req.body.description || '',
             discount: req.body.discount || null,
             original_price: req.body.originalPrice || null,
+            contact: req.body.contact || '',
+            type: req.body.type || 'monthly',
             created_at: new Date().toISOString(),
             status: 'pending'
         };
@@ -178,6 +180,8 @@ app.post('/api/approve-product/:id', async (req, res) => {
             description: pendingProduct.description,
             discount: pendingProduct.discount,
             original_price: pendingProduct.original_price,
+            contact: pendingProduct.contact,
+            type: pendingProduct.type,
             created_at: pendingProduct.created_at,
             status: 'active'
         };
@@ -220,24 +224,7 @@ app.delete('/api/pending-products/:id', async (req, res) => {
     }
 });
 
-// ============ УДАЛЕНИЕ ТОВАРА ИЗ PRODUCTS ============
-app.delete('/api/products/:id', async (req, res) => {
-    console.log('🗑️ DELETE /api/products/' + req.params.id);
-    try {
-        const { error } = await supabase
-            .from('products')
-            .delete()
-            .eq('id', req.params.id);
-        
-        if (error) throw error;
-        res.json({ success: true });
-    } catch (err) {
-        console.error('❌ DELETE product error:', err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// ============ КЛЮЧЕВЫЕ СЛОВА - GET ============
+// ============ КЛЮЧЕВЫЕ СЛОВА ============
 app.get('/api/keywords', async (req, res) => {
     console.log('🏷️ GET /api/keywords');
     try {
@@ -254,12 +241,11 @@ app.get('/api/keywords', async (req, res) => {
     }
 });
 
-// ============ КЛЮЧЕВЫЕ СЛОВА - POST ============
 app.post('/api/keywords', async (req, res) => {
     console.log('🏷️ POST /api/keywords');
     try {
         const keyword = {
-            id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+            id: Date.now().toString(),
             name: req.body.name,
             type: req.body.type || 'Стандарт',
             created_at: new Date().toISOString()
@@ -278,7 +264,6 @@ app.post('/api/keywords', async (req, res) => {
     }
 });
 
-// ============ КЛЮЧЕВЫЕ СЛОВА - DELETE ============
 app.delete('/api/keywords/:id', async (req, res) => {
     console.log('🏷️ DELETE /api/keywords/' + req.params.id);
     try {
@@ -295,21 +280,6 @@ app.delete('/api/keywords/:id', async (req, res) => {
     }
 });
 
-// ============ ИГРОВЫЕ БЛОКИ - GET ============
-app.get('/api/game-blocks', async (req, res) => {
-    try {
-        const { data, error } = await supabase
-            .from('game_blocks')
-            .select('*')
-            .order('created_at');
-        
-        if (error) throw error;
-        res.json(data || []);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
 // ============ ТЕСТ БАЗЫ ============
 app.get('/api/test-db', async (req, res) => {
     try {
@@ -321,22 +291,19 @@ app.get('/api/test-db', async (req, res) => {
             .from('pending_products')
             .select('*', { count: 'exact', head: true });
         
+        const { count: keywordsCount } = await supabase
+            .from('keywords')
+            .select('*', { count: 'exact', head: true });
+        
         res.json({
             success: true,
             products_count: productsCount || 0,
-            pending_count: pendingCount || 0
+            pending_count: pendingCount || 0,
+            keywords_count: keywordsCount || 0
         });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
-});
-
-// ============ OPTIONS ============
-app.options('*', (req, res) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, PUT, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.status(200).end();
 });
 
 // ============ ВСЕ ОСТАЛЬНЫЕ МАРШРУТЫ ============
@@ -350,6 +317,7 @@ const server = app.listen(PORT, HOST, () => {
     console.log(`📦 GET /api/products - одобренные товары`);
     console.log(`📦 GET /api/pending-products - товары на модерации`);
     console.log(`✅ POST /api/approve-product/:id - одобрить товар`);
+    console.log(`🏷️ GET /api/keywords - ключевые слова`);
 });
 
 server.timeout = 120000;
