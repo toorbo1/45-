@@ -34,9 +34,7 @@ const API = {
             return Array.isArray(products) ? products : [];
         } catch (error) {
             console.error('Error fetching products:', error);
-            // Fallback на localStorage
-            const stored = localStorage.getItem('apex_products');
-            return stored ? JSON.parse(stored) : [];
+            return [];
         }
     },
     
@@ -45,11 +43,6 @@ const API = {
             method: 'POST',
             body: JSON.stringify(product)
         });
-        
-        // Обновляем localStorage кеш
-        const products = await this.getProducts();
-        localStorage.setItem('apex_products', JSON.stringify(products));
-        
         return result;
     },
     
@@ -57,11 +50,6 @@ const API = {
         const result = await this.request(`/api/products/${id}`, {
             method: 'DELETE'
         });
-        
-        // Обновляем localStorage кеш
-        const products = await this.getProducts();
-        localStorage.setItem('apex_products', JSON.stringify(products));
-        
         return result;
     },
     
@@ -71,8 +59,7 @@ const API = {
             return Array.isArray(keywords) ? keywords : [];
         } catch (error) {
             console.error('Error fetching keywords:', error);
-            const stored = localStorage.getItem('apex_keywords');
-            return stored ? JSON.parse(stored) : [];
+            return [];
         }
     },
     
@@ -81,10 +68,6 @@ const API = {
             method: 'POST',
             body: JSON.stringify(keyword)
         });
-        
-        const keywords = await this.getKeywords();
-        localStorage.setItem('apex_keywords', JSON.stringify(keywords));
-        
         return result;
     },
     
@@ -92,10 +75,6 @@ const API = {
         const result = await this.request(`/api/keywords/${id}`, {
             method: 'DELETE'
         });
-        
-        const keywords = await this.getKeywords();
-        localStorage.setItem('apex_keywords', JSON.stringify(keywords));
-        
         return result;
     },
     
@@ -113,16 +92,5 @@ const API = {
 
 // Экспорт
 window.API = API;
-
-// Тест подключения при загрузке
-setTimeout(async () => {
-    console.log('🔌 Testing API connection...');
-    const test = await API.testConnection();
-    if (test.success) {
-        console.log('✅ API connection OK');
-    } else {
-        console.error('❌ API connection failed:', test.error);
-    }
-}, 1000);
 
 console.log('✅ API client loaded');

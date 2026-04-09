@@ -11,7 +11,6 @@
         try {
             const products = await API.getProducts();
             window.productsArray = products;
-            localStorage.setItem('apex_products', JSON.stringify(products));
             
             // Отрисовка на главной странице
             const grid = document.getElementById('productsGrid');
@@ -22,7 +21,7 @@
                     let html = '';
                     products.forEach(p => {
                         html += `
-                            <div class="product-card" onclick="window.openProductDetail('${p.id}')">
+                            <div class="product-card" onclick="window.openProductDetailById('${p.id}')">
                                 <div class="card-image">
                                     <img src="${p.image_url || 'https://picsum.photos/id/42/400/300'}" 
                                          onerror="this.src='https://picsum.photos/id/42/400/300'">
@@ -53,9 +52,44 @@
         }
     };
 
-    // ========== 2. ОТКРЫТИЕ ТОВАРА ==========
-    window.openProductDetail = async function(productId) {
-        console.log('🔍 openProductDetail:', productId);
+    // ========== 2. ЗАГРУЗКА КЛЮЧЕВЫХ СЛОВ ==========
+    window.loadKeywordsGlobal = async function() {
+        try {
+            const keywords = await API.getKeywords();
+            window.keywords = keywords;
+            
+            // Обновляем все селекты
+            const selects = ['postKeyword', 'productKeywordSelect', 'newGameKeyword', 'newAppKeyword', 'editKeyword'];
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                if (select) {
+                    const currentValue = select.value;
+                    select.innerHTML = '<option value="">Выберите категорию</option>';
+                    keywords.forEach(k => {
+                        select.innerHTML += `<option value="${k.id}">${k.name} - ${k.type}</option>`;
+                    });
+                    if (currentValue && keywords.some(k => k.id === currentValue)) {
+                        select.value = currentValue;
+                    }
+                }
+            });
+            
+            // Обновляем список в админке
+            if (typeof renderKeywords === 'function') {
+                renderKeywords();
+            }
+            
+            console.log(`✅ Загружено ${keywords.length} ключевых слов`);
+            return keywords;
+        } catch(e) {
+            console.error('loadKeywordsGlobal error:', e);
+            return [];
+        }
+    };
+
+    // ========== 3. ОТКРЫТИЕ ТОВАРА ==========
+    window.openProductDetailById = async function(productId) {
+        console.log('🔍 openProductDetailById:', productId);
         const products = await API.getProducts();
         const product = products.find(p => p.id === productId);
         
@@ -64,11 +98,11 @@
             return;
         }
         
-        // Показываем информацию (можно заменить на красивый модал)
+        // Показываем информацию
         alert(`📦 ${product.title}\n💰 ${product.price}\n👤 ${product.seller}\n\n📝 ${(product.description || '').substring(0, 200)}...`);
     };
 
-    // ========== 3. ФИЛЬТРАЦИЯ ТОВАРОВ ==========
+    // ========== 4. ФИЛЬТРАЦИЯ ТОВАРОВ ==========
     window.filterProducts = function() {
         const term = document.getElementById('searchInput')?.value.toLowerCase() || '';
         const products = window.productsArray || [];
@@ -86,7 +120,7 @@
             let html = '';
             filtered.forEach(p => {
                 html += `
-                    <div class="product-card" onclick="window.openProductDetail('${p.id}')">
+                    <div class="product-card" onclick="window.openProductDetailById('${p.id}')">
                         <div class="card-image">
                             <img src="${p.image_url || 'https://picsum.photos/id/42/400/300'}" 
                                  onerror="this.src='https://picsum.photos/id/42/400/300'">
@@ -102,7 +136,7 @@
         }
     };
 
-    // ========== 4. АДМИН-ФУНКЦИЯ СОЗДАНИЯ ТОВАРА ==========
+    // ========== 5. АДМИН-ФУНКЦИЯ СОЗДАНИЯ ТОВАРА ==========
     window.createAdminProduct = async function() {
         console.log('👑 createAdminProduct (GLOBAL FIX)');
         
@@ -112,18 +146,25 @@
         const seller = document.getElementById('postSeller')?.value.trim() || 'Admin';
         const imageUrl = document.getElementById('postImageUrl')?.value.trim();
         const keywordSelect = document.getElementById('postKeyword');
-        const keyword = keywordSelect?.options?.[keywordSelect.selectedIndex]?.text || 'Общее';
+        const keywordId = keywordSelect?.value;
         
         if (!title || !price) {
             alert('❌ Заполните название и цену');
             return;
         }
         
+        // Получаем имя ключевого слова
+        let keywordName = "Общее";
+        if (keywordId && window.keywords) {
+            const selected = window.keywords.find(k => k.id === keywordId);
+            if (selected) keywordName = selected.name;
+        }
+        
         const newProduct = {
             title: title,
             price: price,
             seller: seller,
-            keyword: keyword,
+            keyword: keywordName,
             image_url: imageUrl || 'https://picsum.photos/id/42/400/200',
             description: description || 'Новый товар'
         };
@@ -153,7 +194,7 @@
         }
     };
 
-    // ========== 5. ФУНКЦИЯ УДАЛЕНИЯ ТОВАРА ==========
+    // ========== 6. ФУНКЦИЯ УДАЛЕНИЯ ТОВАРА ==========
     window.deleteProduct = async function(productId) {
         if (!confirm('Удалить этот товар?')) return;
         
@@ -168,12 +209,15 @@
             if (typeof window.renderUserProductsList === 'function') {
                 await window.renderUserProductsList();
             }
+            if (typeof window.loadUserProductsInProfile === 'function') {
+                await window.loadUserProductsInProfile();
+            }
         } catch(e) {
             alert('❌ Ошибка: ' + e.message);
         }
     };
 
-    // ========== 6. ФУНКЦИЯ ДЛЯ СТРАНИЦЫ ТОВАРОВ ==========
+    // ========== 7. ФУНКЦИЯ ДЛЯ СТРАНИЦЫ ТОВАРОВ ==========
     window.renderUserProductsList = async function() {
         const container = document.getElementById('userProductsList');
         if (!container) return;
@@ -181,6 +225,9 @@
         const currentUser = localStorage.getItem('apex_user') || 'Гость';
         const products = await API.getProducts();
         const userProducts = products.filter(p => p.seller === currentUser);
+        
+        const totalSpan = document.getElementById('userProductsTotalCount');
+        if (totalSpan) totalSpan.innerText = `Всего: ${userProducts.length}`;
         
         if (userProducts.length === 0) {
             container.innerHTML = '<div class="empty-products-state">У вас пока нет товаров</div>';
@@ -203,7 +250,7 @@
         `).join('');
     };
 
-    // ========== 7. ФУНКЦИЯ ДЛЯ ПРОФИЛЯ ==========
+    // ========== 8. ФУНКЦИЯ ДЛЯ ПРОФИЛЯ ==========
     window.loadUserProductsInProfile = async function() {
         const container = document.getElementById('profileProductsList');
         if (!container) return;
@@ -224,7 +271,7 @@
         }
         
         container.innerHTML = userProducts.map(p => `
-            <div class="profile-product-item" onclick="window.openProductDetail('${p.id}')">
+            <div class="profile-product-item" onclick="window.openProductDetailById('${p.id}')">
                 <img class="profile-product-img" src="${p.image_url || 'https://picsum.photos/id/42/50/50'}">
                 <div class="profile-product-info">
                     <div class="profile-product-title">${p.title}</div>
@@ -234,12 +281,11 @@
             </div>
         `).join('');
         
-        // Обновляем счетчик
         const countSpan = document.getElementById('profileProductsCount');
         if (countSpan) countSpan.innerText = userProducts.length;
     };
 
-    // ========== 8. АДМИН-СПИСОК ТОВАРОВ ==========
+    // ========== 9. АДМИН-СПИСОК ТОВАРОВ ==========
     window.loadAdminProducts = async function() {
         const container = document.getElementById('adminProductsList');
         if (!container) return;
@@ -270,24 +316,24 @@
         if (countSpan) countSpan.innerText = products.length;
     };
 
-    // ========== 9. ОБНОВЛЕНИЕ СТАТИСТИКИ ==========
-    window.updateAdminStats = async function() {
-        try {
-            const products = await API.getProducts();
-            const countSpan = document.getElementById('adminProductsCount');
-            if (countSpan) countSpan.innerText = products.length;
-        } catch(e) {}
-    };
-
     // ========== 10. СОЗДАНИЕ ТОВАРА (ДЛЯ ОБЫЧНЫХ ПОЛЬЗОВАТЕЛЕЙ) ==========
     window.createNewProduct = async function() {
         const title = document.getElementById('productTitle')?.value;
         const price = document.getElementById('productPrice')?.value;
         const description = document.getElementById('productDescription')?.value;
+        const keywordSelect = document.getElementById('productKeywordSelect');
+        const keywordId = keywordSelect?.value;
         
         if (!title || !price) {
             alert('Заполните название и цену');
             return;
+        }
+        
+        // Получаем имя ключевого слова
+        let keywordName = "Общее";
+        if (keywordId && window.keywords) {
+            const selected = window.keywords.find(k => k.id === keywordId);
+            if (selected) keywordName = selected.name;
         }
         
         const currentUser = localStorage.getItem('apex_user') || 'Гость';
@@ -296,7 +342,7 @@
             title: title,
             price: price,
             seller: currentUser,
-            keyword: 'Общее',
+            keyword: keywordName,
             image_url: document.getElementById('productImageUrl')?.value || 'https://picsum.photos/id/42/400/200',
             description: description || 'Новый товар'
         };
@@ -310,6 +356,7 @@
                 const el = document.getElementById(id);
                 if (el) el.value = '';
             });
+            if (keywordSelect) keywordSelect.value = '';
             
             await window.loadProducts();
             
@@ -321,32 +368,46 @@
         }
     };
 
-    // ========== 11. АВТОМАТИЧЕСКАЯ ЗАГРУЗКА ПРИ СТАРТЕ ==========
-    // Ждем полной загрузки DOM
+    // ========== 11. ОБНОВЛЕНИЕ СТАТИСТИКИ АДМИНА ==========
+    window.updateAdminStats = async function() {
+        try {
+            const products = await API.getProducts();
+            const countSpan = document.getElementById('adminProductsCount');
+            if (countSpan) countSpan.innerText = products.length;
+        } catch(e) {}
+    };
+
+    // ========== 12. АВТОМАТИЧЕСКАЯ ЗАГРУЗКА ПРИ СТАРТЕ ==========
+    async function initAll() {
+        console.log('📄 Инициализация всех данных...');
+        
+        // Загружаем ключевые слова
+        await window.loadKeywordsGlobal();
+        
+        // Загружаем товары
+        await window.loadProducts();
+        
+        // Загружаем товары в профиль если страница активна
+        if (document.getElementById('profile')?.classList?.contains('active')) {
+            await window.loadUserProductsInProfile();
+        }
+        
+        // Загружаем список товаров пользователя
+        if (document.getElementById('products-manage')?.classList?.contains('active')) {
+            await window.renderUserProductsList();
+        }
+        
+        // Обновляем статистику админа
+        await window.updateAdminStats();
+        
+        console.log('✅ Все данные синхронизированы с сервером');
+    }
+    
+    // Запускаем инициализацию
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', async () => {
-            console.log('📄 DOM загружен, инициализация...');
-            await window.loadProducts();
-            
-            // Если на странице профиля - загружаем товары профиля
-            if (document.getElementById('profile')?.classList?.contains('active')) {
-                await window.loadUserProductsInProfile();
-            }
-            
-            // Если на странице товаров - загружаем список
-            if (document.getElementById('products-manage')?.classList?.contains('active')) {
-                await window.renderUserProductsList();
-            }
-            
-            // Если в админке - обновляем статистику
-            if (typeof window.updateAdminStats === 'function') {
-                await window.updateAdminStats();
-            }
-        });
+        document.addEventListener('DOMContentLoaded', initAll);
     } else {
-        (async () => {
-            await window.loadProducts();
-        })();
+        initAll();
     }
 
     console.log('✅ GLOBAL FIX загружен - все функции синхронизированы с API');

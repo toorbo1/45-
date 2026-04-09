@@ -1062,28 +1062,21 @@ function editAppBlock(id) {
   }
 }
 
-// ==================== 7. КЛЮЧЕВЫЕ СЛОВА (НОВАЯ ВЕРСИЯ) ====================
+// ==================== КЛЮЧЕВЫЕ СЛОВА (СИНХРОНИЗАЦИЯ С СЕРВЕРОМ) ====================
 
 async function loadKeywords() {
     try {
         const keywords = await API.getKeywords();
         window.keywords = keywords;
-        
-        // Сохраняем в localStorage для обратной совместимости
-        localStorage.setItem('apex_keywords', JSON.stringify(keywords));
-        
         renderKeywords();
         updateKeywordSelect();
         updateGameKeywordSelect();
         updateAppKeywordSelect();
-        
+        console.log('✅ Загружено ключевых слов:', keywords.length);
     } catch (error) {
         console.error('Ошибка загрузки ключевых слов:', error);
-        // Fallback на localStorage
-        const stored = localStorage.getItem("apex_keywords");
-        window.keywords = stored ? JSON.parse(stored) : [];
+        window.keywords = [];
         renderKeywords();
-        updateKeywordSelect();
     }
 }
 
@@ -1103,25 +1096,21 @@ async function addKeyword() {
         });
         
         // Обновляем локальный массив
-        keywords.push(newKeyword);
+        window.keywords = await API.getKeywords();
         
         renderKeywords();
         updateKeywordSelect();
         updateGameKeywordSelect();
         updateAppKeywordSelect();
         
-        if (document.getElementById("newKeywordName")) {
-            document.getElementById("newKeywordName").value = "";
-        }
-        if (document.getElementById("newKeywordType")) {
-            document.getElementById("newKeywordType").value = "";
-        }
+        document.getElementById("newKeywordName").value = "";
+        document.getElementById("newKeywordType").value = "";
         
         showToast(`✅ Ключевое слово "${name}" добавлено!`, "success");
         
     } catch (error) {
         console.error('Error adding keyword:', error);
-        showToast("❌ Ошибка при добавлении", "error");
+        showToast("❌ Ошибка при добавлении: " + error.message, "error");
     }
 }
 
@@ -1129,7 +1118,7 @@ async function deleteKeyword(keywordId) {
     if (confirm("Удалить это ключевое слово? Все товары с ним останутся, но категория пропадёт.")) {
         try {
             await API.deleteKeyword(keywordId);
-            keywords = keywords.filter(k => k.id !== keywordId);
+            window.keywords = await API.getKeywords();
             renderKeywords();
             updateKeywordSelect();
             updateGameKeywordSelect();
@@ -1137,9 +1126,71 @@ async function deleteKeyword(keywordId) {
             showToast("✅ Ключевое слово удалено", "success");
         } catch (error) {
             console.error('Error deleting keyword:', error);
-            showToast("❌ Ошибка при удалении", "error");
+            showToast("❌ Ошибка при удалении: " + error.message, "error");
         }
     }
+}
+
+function renderKeywords() {
+    const container = document.getElementById("keywordsList");
+    if (!container) return;
+    
+    const keywords = window.keywords || [];
+    
+    if (keywords.length === 0) {
+        container.innerHTML = '<div class="empty-state">Нет ключевых слов</div>';
+        return;
+    }
+    
+    container.innerHTML = keywords.map(k => `
+        <div class="keyword-item">
+            <div class="keyword-info">
+                <span class="keyword-name">${escapeHtml(k.name)}</span>
+                <span class="keyword-type">${escapeHtml(k.type)}</span>
+            </div>
+            <div class="keyword-actions">
+                <button class="delete-keyword-btn" onclick="deleteKeyword('${k.id}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function updateKeywordSelect() {
+    const select = document.getElementById("postKeyword");
+    if (!select) return;
+    
+    const keywords = window.keywords || [];
+    
+    select.innerHTML = '<option value="">Выберите ключевое слово/категорию</option>';
+    keywords.forEach(k => {
+        select.innerHTML += `<option value="${escapeHtml(k.id)}">${escapeHtml(k.name)} - ${escapeHtml(k.type)}</option>`;
+    });
+}
+
+function updateGameKeywordSelect() {
+    const select = document.getElementById("newGameKeyword");
+    if (!select) return;
+    
+    const keywords = window.keywords || [];
+    
+    select.innerHTML = '<option value="">Без привязки к ключевому слову</option>';
+    keywords.forEach(k => {
+        select.innerHTML += `<option value="${escapeHtml(k.id)}">${escapeHtml(k.name)} - ${escapeHtml(k.type)}</option>`;
+    });
+}
+
+function updateAppKeywordSelect() {
+    const select = document.getElementById("newAppKeyword");
+    if (!select) return;
+    
+    const keywords = window.keywords || [];
+    
+    select.innerHTML = '<option value="">Без привязки к ключевому слову</option>';
+    keywords.forEach(k => {
+        select.innerHTML += `<option value="${escapeHtml(k.id)}">${escapeHtml(k.name)} - ${escapeHtml(k.type)}</option>`;
+    });
 }
 
 async function updateAdminStats() {
